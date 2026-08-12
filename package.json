@@ -1,0 +1,38 @@
+{
+  "name": "devcdp",
+  "version": "5.0.0",
+  "description": "MCP server giving AI assistants real Chrome DevTools access — console, network, DOM, source maps, breakpoints and step debugging — with multi-session tab isolation.",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "devcdp": "index.js"
+  },
+  "files": [
+    "index.js",
+    "server.js",
+    "src/",
+    "extension/",
+    "scripts/",
+    "docs/",
+    "devcdp.settings.example.json"
+  ],
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "validate": "node test/validate.mjs",
+    "test": "node test/validate.mjs && node test/installer.test.mjs && node test/integration.mjs",
+    "test:integration": "node test/integration.mjs",
+    "test:installer": "node test/installer.test.mjs",
+    "docs": "node scripts/gen-docs.mjs",
+    "call": "node scripts/call.mjs",
+    "probe": "node scripts/mcp-probe.mjs",
+    "debug": "node --inspect-brk index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "chrome-remote-interface": "^0.33.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

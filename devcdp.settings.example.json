@@ -1,0 +1,44 @@
+{
+  "//": "Copy to devcdp.config.json and edit. Every field is optional; DevCDP works with none of them set. Environment variables (DEVCDP_*) override this file, and tool arguments override both.",
+
+  "//docsRoot": "Where to read the app's own README and docs, so the assistant can learn your domain vocabulary instead of guessing. Defaults to the working directory when that looks like a repository.",
+  "docsRoot": null,
+
+  "//sharedMemoryDir": "A path several people can reach — a network share, or a folder in your repo. Learned fixes written here are read by every teammate's DevCDP, which is what makes recovery knowledge accumulate instead of staying on one laptop.",
+  "sharedMemoryDir": null,
+
+  "//dialogSelectors": "Extra CSS selectors for modals that structural detection misses. Dialog detection is standards-based first (role=dialog, aria-modal, the dialog element) then geometric, so most apps need nothing here.",
+  "dialogSelectors": [],
+
+  "//testAttributes": "Attributes preferred when building selectors, most trustworthy first.",
+  "testAttributes": ["data-testid", "data-test-id", "data-test", "data-qa", "data-cy", "data-automation-id"],
+
+  "//apiProbePaths": "Where to look for an OpenAPI/Swagger document when mapping the backend. Add yours if it lives somewhere non-standard.",
+  "apiProbePaths": ["/swagger/v1/swagger.json", "/openapi.json", "/v3/api-docs"],
+
+  "//port": "Chrome remote-debugging port to attach to by default.",
+  "port": 9222,
+
+  "//portRange": "Range used when a session asks for its own separate browser.",
+  "portRange": [9222, 9242],
+
+  "//badge": "Show the on-page badge that tells the user which session is driving the tab, and carries the confirmation button for manual handovers. Turn it off only if it interferes with visual testing.",
+  "badge": true,
+  "//badgeCorner": "Where the overlay parks before you move it: tc | bc (top/bottom centre) or tl | tr | bl | br. Top centre by default, because every corner is somewhere an app already puts a control. Drag the chip to move it; the drop position is remembered per origin, and the status messages travel with it.",
+  "badgeCorner": "tc",
+
+  "//disableWebSecurity": "Leave false. Disabling web security makes CORS and cross-origin bugs unreproducible in the very browser you debug in — the previous launcher always set it, which hid exactly the class of bug people were asking about.",
+  "disableWebSecurity": false,
+
+  "//captureInputValues": "Record the values typed into fields. Off by default: field contents are frequently personal or confidential. Password-type and sensitive-looking fields stay redacted even when this is on.",
+  "captureInputValues": false,
+
+  "//maxPostDataBytes": "Cap on captured request payloads.",
+  "maxPostDataBytes": 8192,
+
+  "//buffers": "How much observation history to hold in memory. Anything evicted is reported rather than silently dropped.",
+  "consoleBufferSize": 2000,
+  "networkBufferSize": 500,
+  "mutationBufferSize": 400,
+  "activityBufferSize": 800
+}

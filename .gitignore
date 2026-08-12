@@ -1,0 +1,78 @@
+# ─── Dependencies ────────────────────────────────────────────────────────────
+node_modules/
+
+# package-lock.json is deliberately NOT ignored. It pins every transitive
+# dependency, so a teammate installing next month gets the versions this was
+# tested against. Leaving it out is how an install silently drifts.
+
+# ─── Machine-specific: never commit ──────────────────────────────────────────
+# Real settings belong to whoever installed it; devcdp.settings.example.json is
+# the one that ships.
+devcdp.settings.json
+devcdp.config.json
+settings.json
+
+# Learned memory and the session claim registry: local state, and memory entries
+# can quote data from the app being debugged.
+.devcdp/
+*.jsonl
+
+# Backups and temp files written by the setup wizard.
+*.devcdp-backup-*
+*.devcdp-tmp-*
+
+# ─── Session materials ───────────────────────────────────────────────────────
+# The slide deck and handout still describe behaviour the tool no longer has
+# (BACKLOG.md, DOC-4). Delete these two lines once they are reworded, if you want
+# them distributed with the code.
+DevCDP-session-slides.pdf
+DevCDP-session-handout.pdf
+
+# ─── Scratch work ────────────────────────────────────────────────────────────
+# Throwaway scripts written while investigating. Keep this habit: put temporary
+# files here or use these prefixes, and they can never be committed by accident.
+scratch/
+tmp/
+probe-*.mjs
+shoot-*.mjs
+bench.*
+*-audit.mjs
+*-patch.mjs
+
+# ─── Test and tooling output ─────────────────────────────────────────────────
+automation-output/
+test-results/
+coverage/
+*.log
+npm-debug.log*
+
+# ─── Screenshots and captures ────────────────────────────────────────────────
+# Ignored by default because these are usually debugging leftovers, and a
+# screenshot of a real app can contain customer data. Images that genuinely
+# belong to the documentation are allowed through by the exceptions below.
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+!docs/**/*.png
+!docs/**/*.gif
+!extension/icons/*.png
+
+# ─── Secrets ─────────────────────────────────────────────────────────────────
+.env
+.env.*
+*.pem
+*.key
+
+# ─── Editors and OS ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ─── Note on generated files ─────────────────────────────────────────────────
+# docs/TOOLS.md IS committed even though `npm run docs` generates it: the offline
+# test suite regenerates it and fails if the committed copy differs, which is what
+# stops the tool reference drifting from the tools.
