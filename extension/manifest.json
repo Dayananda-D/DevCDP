@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "DevCDP Session Marker",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "Marks and groups the Chrome tabs currently being driven by a DevCDP debugging session.",
   "permissions": ["tabs", "tabGroups"],
   "background": { "service_worker": "background.js" },

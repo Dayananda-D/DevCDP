@@ -1,18 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.dayananda-d/devcdp",
+  "name": "io.github.Dayananda-D/devcdp",
   "description": "Chrome DevTools for AI assistants: console, network, DOM, source maps, breakpoints, live variables.",
   "repository": {
     "url": "https://github.com/Dayananda-D/DevCDP",
     "source": "github"
   },
   "websiteUrl": "https://github.com/Dayananda-D/DevCDP#readme",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "devcdp",
-      "version": "5.0.0",
+      "version": "5.0.1",
       "transport": {
         "type": "stdio"
       },

@@ -1,7 +1,7 @@
 {
   "name": "devcdp",
   "displayName": "DevCDP",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "Real Chrome DevTools access for Claude: console, network, DOM, source maps, breakpoints and live variables, plus guidance on when to use each.",
   "author": {
     "name": "Dayananda D",

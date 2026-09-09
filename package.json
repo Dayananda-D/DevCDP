@@ -1,7 +1,7 @@
 {
   "name": "devcdp",
-  "version": "5.0.0",
-  "mcpName": "io.github.dayananda-d/devcdp",
+  "version": "5.0.1",
+  "mcpName": "io.github.Dayananda-D/devcdp",
   "description": "MCP server giving AI assistants real Chrome DevTools access — console, network, DOM, source maps, breakpoints and step debugging — with multi-session tab isolation.",
   "license": "MIT",
   "author": {

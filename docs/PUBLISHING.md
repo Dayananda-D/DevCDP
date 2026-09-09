@@ -18,7 +18,7 @@ consumer directories need a hosted server first.
 
 1. **npm account** with 2FA. Check the name is still free: `npm view devcdp` should 404.
 2. **GitHub**: the repo is public, the `mcpName` in `package.json` is
-   `io.github.dayananda-d/devcdp`, so the publish must be done by the GitHub account
+   `io.github.Dayananda-D/devcdp`, so the publish must be done by the GitHub account
    that owns `Dayananda-D/DevCDP` (namespace = your GitHub login).
 3. For the workflow in `.github/workflows/publish.yml`: add an npm **Automation**
    token as the `NPM_TOKEN` repository secret, or set up npm Trusted Publishing for this
@@ -69,7 +69,7 @@ Then, from the repo root:
 ```
 mcp-publisher login github        # device-code flow in the browser
 mcp-publisher publish             # reads ./server.json
-curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.dayananda-d/devcdp"
+curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.Dayananda-D/devcdp"
 ```
 
 The registry checks that the npm package's `mcpName` matches `server.json`'s `name`, so
@@ -92,17 +92,10 @@ The plugin's launcher (`plugins/devcdp/bin/launch.mjs`) installs the npm package
 the plugin's data directory on first run, so step 1 must be done first, and the
 plugin version must exist on npm.
 
-To be listed in Anthropic's curated marketplace, open a PR that adds an entry to
-`.claude-plugin/marketplace.json` in
-https://github.com/anthropics/claude-plugins-official pointing at this repo:
-
-```json
-{
-  "name": "devcdp",
-  "source": { "source": "git-subdir", "url": "https://github.com/Dayananda-D/DevCDP.git", "path": "plugins/devcdp" },
-  "description": "Real Chrome DevTools access for Claude: console, network, DOM, source maps, breakpoints and live variables."
-}
-```
+Anthropic's curated marketplace does not take pull requests from outside. Third-party
+plugins go through the submission form at https://clau.de/plugin-directory-submission
+(linked from the README of https://github.com/anthropics/claude-plugins-official). Give
+it this repository, the plugin path `plugins/devcdp`, and the description above.
 
 Also list the marketplace on https://claudecodemarketplace.com (community index).
 

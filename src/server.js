@@ -71,7 +71,7 @@ export function createServer(overrides = {}) {
   const health = assertRegistryHealthy();
 
   const server = new Server(
-    { name: "devcdp", version: "5.0.0" },
+    { name: "devcdp", version: "5.0.1" },
     { capabilities: { tools: {}, logging: {} } },
   );
   attachMcpServer(server);
