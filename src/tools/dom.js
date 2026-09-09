@@ -102,6 +102,7 @@ async function explainNoMatch(args, ctx) {
 
 defineTool({
   name: "dom_query",
+  readOnly: true,
   description:
     "Query elements by CSS selector and return tag, id, classes, text, attributes, geometry and real visibility. "
     + "Ask for computed styles by naming the properties you want. Set frame:'all' to search inside iframes too — "
@@ -205,6 +206,7 @@ defineTool({
 
 defineTool({
   name: "dom_list_frames",
+  readOnly: true,
   description:
     "List the frames and JavaScript execution contexts in the attached tab. Use it when a selector finds nothing — "
     + "the content may live in an iframe, which needs frame:'all' on dom_query.",
@@ -242,6 +244,7 @@ defineTool({
 
 defineTool({
   name: "dom_get_html",
+  readOnly: true,
   description:
     "Get the inner or outer HTML of the first element matching a selector, truncated to a byte budget. Useful for "
     + "understanding structure you cannot infer from dom_query alone.",
@@ -281,6 +284,7 @@ defineTool({
 
 defineTool({
   name: "dom_get_mutations",
+  readOnly: true,
   description:
     "DOM changes recorded since the last call — what was added, removed or re-attributed, and where. Use it after an "
     + "action to see whether the app re-rendered at all, which distinguishes 'handler never ran' from 'handler ran "
@@ -308,6 +312,7 @@ defineTool({
 
 defineTool({
   name: "dialog_detect",
+  readOnly: true,
   description:
     "Detect modal dialogs, alerts and confirmation overlays that are visible right now, with their title, message "
     + "and button labels. Detection is structural — ARIA roles, the dialog element, and stacked-overlay geometry — "

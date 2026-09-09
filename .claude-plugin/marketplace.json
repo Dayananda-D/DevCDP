@@ -1,0 +1,21 @@
+{
+  "name": "devcdp",
+  "description": "DevCDP: real Chrome DevTools access for Claude Code.",
+  "owner": {
+    "name": "Dayananda D",
+    "url": "https://github.com/Dayananda-D"
+  },
+  "plugins": [
+    {
+      "name": "devcdp",
+      "source": "./plugins/devcdp",
+      "description": "Real Chrome DevTools access for Claude: console, network, DOM, source maps, breakpoints and live variables, plus guidance on when to use each.",
+      "version": "5.0.0",
+      "author": { "name": "Dayananda D", "url": "https://github.com/Dayananda-D" },
+      "homepage": "https://github.com/Dayananda-D/DevCDP#readme",
+      "repository": "https://github.com/Dayananda-D/DevCDP",
+      "license": "MIT",
+      "keywords": ["chrome", "devtools", "debugging", "browser", "mcp", "breakpoints", "network", "console"]
+    }
+  ]
+}

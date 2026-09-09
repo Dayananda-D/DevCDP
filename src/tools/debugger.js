@@ -27,6 +27,7 @@ const requirePaused = ctx => {
 
 defineTool({
   name: "debugger_set_breakpoint",
+  destructive: false,
   description:
     "Set a breakpoint and report honestly whether Chrome could bind it. Accepts either a loaded script URL (a "
     + "substring is resolved to the exact script) or an original pre-bundling file path, which is translated through "
@@ -191,6 +192,7 @@ defineTool({
 
 defineTool({
   name: "debugger_set_breakpoint_at_function",
+  destructive: false,
   description:
     "Set a breakpoint on a function you can name, without knowing which file it lives in. Give any expression that "
     + "evaluates to a function — 'app.saveOrder', 'MyClass.prototype.load', a framework helper — and DevCDP finds its "
@@ -322,6 +324,7 @@ defineTool({
 
 defineTool({
   name: "debugger_list_breakpoints",
+  readOnly: true,
   description:
     "List the breakpoints DevCDP has set, including whether each is actually bound to executable code. An unbound "
     + "breakpoint will never fire — check here first when a breakpoint 'is not hitting'.",
@@ -346,6 +349,7 @@ defineTool({
 
 defineTool({
   name: "debugger_remove_breakpoint",
+  destructive: false,
   description: "Remove one breakpoint by its breakpointId. Use debugger_remove_all_breakpoints to clear them in one call.",
   args: { breakpoint_id: { type: "string", description: "breakpointId from debugger_set_breakpoint.", required: true } },
   async handler(args, ctx) {
@@ -363,6 +367,7 @@ defineTool({
 
 defineTool({
   name: "debugger_remove_all_breakpoints",
+  destructive: false, idempotent: true,
   description:
     "Remove every breakpoint DevCDP set, and resume the page if it is currently paused. Call this before handing the "
     + "browser back to a human, so they do not find a frozen app.",
@@ -390,6 +395,7 @@ defineTool({
 
 defineTool({
   name: "debugger_pause",
+  destructive: false,
   description:
     "Pause JavaScript execution at the next statement the page runs, and hold it so you can inspect and step. The page "
     + "is frozen while held, so DevCDP releases it automatically after maxPauseMs if you have not resumed — no human "
@@ -408,6 +414,7 @@ defineTool({
 
 defineTool({
   name: "debugger_resume",
+  destructive: false, idempotent: true,
   description:
     "Resume execution and drop any hold. Breakpoints resume themselves by default, so this is only needed after an "
     + "explicit pause, after stepping, or after a breakpoint set with auto_resume:false.",
@@ -428,6 +435,7 @@ for (const [name, method, label] of [
 ]) {
   defineTool({
     name,
+    destructive: false,
     description:
       `Step ${label} from the current pause and stop at the next statement. Stepping implies you want the pause held, `
       + "so it will not auto-resume between steps — but it is still released automatically after maxPauseMs if you stop. "
@@ -447,6 +455,7 @@ for (const [name, method, label] of [
 
 defineTool({
   name: "debugger_get_state",
+  readOnly: true,
   description:
     "Where execution is paused right now: the reason, and the full call stack with function names and 1-based "
     + "file positions. Returns paused:false when the page is running.",
@@ -475,6 +484,7 @@ defineTool({
 
 defineTool({
   name: "debugger_get_scope",
+  readOnly: true,
   description:
     "Read the variables in scope at a paused call frame, with objects and arrays expanded rather than printed as "
     + "'Object'. Includes `this`. Anything omitted for size is explicitly marked, so you never have to guess whether "
@@ -510,6 +520,7 @@ defineTool({
 
 defineTool({
   name: "debugger_evaluate_at_frame",
+  openWorld: true,
   description:
     "Evaluate an expression in the scope of a paused call frame, so local variables and closures are in scope. This "
     + "is how you confirm a hypothesis with a real value rather than inferring one.",
@@ -538,6 +549,7 @@ defineTool({
 
 defineTool({
   name: "debugger_get_capture",
+  readOnly: true,
   description:
     "Everything captured automatically at the last breakpoint hit — scope for the top frames, recent console output "
     + "and recent network requests — in one call instead of four. Tells you whether the pause is still current or has "

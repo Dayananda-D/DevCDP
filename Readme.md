@@ -8,7 +8,7 @@ instead of guessing from a pasted error.
 Works with any assistant that speaks MCP, and with any web app: nothing about a
 particular framework, product or company is built in.
 
-**60 tools** — see [docs/TOOLS.md](docs/TOOLS.md) for the full reference, generated
+**74 tools** — see [docs/TOOLS.md](docs/TOOLS.md) for the full reference, generated
 from the server itself, and [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for measured
 token costs and how to lower them.
 
@@ -49,9 +49,41 @@ resume on their own. A pause held deliberately is still released after
 
 ---
 
-## Setup
+## Install
 
 **Requirements:** Node 18+, Chrome, and an MCP-capable assistant.
+
+Pick whichever fits your client. All of them run the same server on your machine; nothing
+is hosted.
+
+**Any MCP client, from npm.** Add to the client's MCP config:
+
+```json
+{ "mcpServers": { "devcdp": { "command": "npx", "args": ["-y", "devcdp"] } } }
+```
+
+On native Windows some clients need `"command": "cmd", "args": ["/c", "npx", "-y", "devcdp"]`.
+
+**Claude Code, as a plugin** (server plus a skill that tells Claude when to reach for which tool):
+
+```
+/plugin marketplace add Dayananda-D/DevCDP
+/plugin install devcdp@devcdp
+```
+
+**VS Code, Copilot CLI, Cursor:** search for `devcdp` in the client's MCP server picker;
+they read from the [official MCP Registry](https://registry.modelcontextprotocol.io/).
+
+**From source**, with the setup wizard that also writes usage guidance into your
+assistant's instructions file: see Setup, next.
+
+Then launch Chrome with remote debugging (`debug-chrome.bat`, or
+`chrome --remote-debugging-port=9222 --user-data-dir=<a separate profile>`), open your
+app, and describe the bug.
+
+---
+
+## Setup
 
 ```
 1. node initialize_MCP.js      (or double-click initialize_MCP.bat)
@@ -254,8 +286,11 @@ src/
   store/     learned-memory store
   tools/     one module per tool group
 extension/               companion extension for Chrome tab groups
-scripts/gen-docs.mjs     regenerates docs/TOOLS.md from the registry
+plugins/devcdp/          Claude Code plugin: manifest, launcher, skill (generated)
+server.json              MCP Registry manifest; must agree with package.json
+scripts/gen-docs.mjs     regenerates docs/TOOLS.md and the plugin skill
 docs/TOOLS.md            full tool reference (generated)
+docs/PUBLISHING.md       how each marketplace listing is made and kept current
 test/
   validate.mjs           offline checks, no browser needed
   installer.test.mjs     the setup wizard, against real files
@@ -283,7 +318,7 @@ npm test                  all three suites
 npm run docs              regenerate the tool reference
 ```
 
-124 checks. The integration suite attaches to a page that has **already finished
+199 checks. The integration suite attaches to a page that has **already finished
 loading**, because that is the case the previous version got wrong. `npm run
 validate` fails if `docs/TOOLS.md` is out of date, so the reference cannot drift.
 
@@ -297,6 +332,11 @@ and reopen. Re-run the wizard if still missing.
 
 **A breakpoint never fires** — `debugger_list_breakpoints` and look at `bound`. An
 unbound breakpoint reports why.
+
+## Privacy and license
+
+DevCDP runs locally and sends nothing anywhere except to the MCP client you connected
+it to: [PRIVACY.md](PRIVACY.md). MIT licensed: [LICENSE](LICENSE).
 
 **A selector finds nothing** — `dom_list_frames`; the content may be in an iframe.
 Retry with `frame: 'all'`.

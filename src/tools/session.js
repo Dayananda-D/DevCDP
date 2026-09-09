@@ -25,6 +25,7 @@ const STATUS_KIND = {
 
 defineTool({
   name: "notify_user",
+  destructive: false, openWorld: true,
   description:
     "Show a short status line to the human, in the badge on the page you are debugging. This is the only channel the "
     + "user actually sees — call it before a slow or surprising step so a frozen-looking app is explained. Keep it to "
@@ -48,6 +49,7 @@ defineTool({
 
 defineTool({
   name: "session_start",
+  destructive: false,
   description:
     "Open a debugging session with a goal and an ordered list of steps, so progress is tracked and a failed step can "
     + "fall back to asking the human. Use it for multi-step reproductions; a single-question investigation does not "
@@ -85,6 +87,7 @@ defineTool({
 
 defineTool({
   name: "session_step_done",
+  destructive: false,
   description: "Mark the current step complete with what you found, and advance. Returns the next step, or allDone when the plan is finished.",
   needsClient: false,
   args: { result: { type: "string", description: "What this step established — a real observed value, not a guess." } },
@@ -113,6 +116,7 @@ defineTool({
 
 defineTool({
   name: "session_step_failed",
+  destructive: false,
   description:
     "Report that you cannot complete the current step yourself. Checks memory for a known recovery first, then tells "
     + "you how to hand over to the human. Use it for anything automation genuinely cannot do — a login you have no "
@@ -145,6 +149,7 @@ defineTool({
 
 defineTool({
   name: "session_ask_user",
+  destructive: false, openWorld: true,
   description:
     "Ask the human to do something in the browser, and show the request in the on-page badge with a confirmation "
     + "button. Returns immediately — poll session_poll_user_action for the outcome. Also relay the instruction in your "
@@ -179,6 +184,7 @@ defineTool({
 
 defineTool({
   name: "session_poll_user_action",
+  readOnly: true,
   description:
     "Check whether the human has completed what session_ask_user requested. Returns acted:false while waiting. Poll "
     + "at a human pace — a few seconds apart — rather than in a tight loop.",
@@ -230,6 +236,7 @@ defineTool({
 
 defineTool({
   name: "session_get_user_actions",
+  readOnly: true,
   description:
     "What the human has done in the browser — clicks, typed values, chosen options, submissions — and the element each "
     + "one touched. Works whether or not you asked, so unprompted help is still readable. Pass the cursor back for only "
@@ -267,6 +274,7 @@ defineTool({
 
 defineTool({
   name: "session_get_activity",
+  readOnly: true,
   description:
     "Unified timeline of everything observed in this session — console output, requests, navigations, dialogs, clicks, "
     + "pauses and handovers, in order. Use it to reconstruct what happened when a step behaved unexpectedly.",
@@ -297,6 +305,7 @@ defineTool({
 
 defineTool({
   name: "session_get_status",
+  readOnly: true,
   description: "Where the session plan stands: the goal, each step's status, which step is current, and whether a human handover is outstanding.",
   needsClient: false,
   async handler(_args, ctx) {
@@ -328,6 +337,7 @@ defineTool({
 
 defineTool({
   name: "session_end",
+  destructive: false, idempotent: true,
   description:
     "Close the session and return a summary. Does not detach — call devtools_disconnect to release the tab and clear "
     + "breakpoints when you are finished with the browser entirely.",
@@ -352,6 +362,7 @@ defineTool({
 
 defineTool({
   name: "session_get_state",
+  readOnly: true,
   description:
     "One snapshot of console output, network requests and DOM mutations together, instead of three separate calls. "
     + "Pass the cursors back on the next call to get only what is new. This is the cheapest way to see the effect of "

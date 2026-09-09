@@ -23,6 +23,7 @@ const extensionCapableChrome = () => {
 
 defineTool({
   name: "devtools_connect",
+  destructive: false, openWorld: true,
   description:
     "Attach to a Chrome tab over the DevTools Protocol and start observing it (console, network, DOM, debugger). "
     + "Claims the tab so no other DevCDP session can drive it, marks it visibly in the browser, and reports what "
@@ -82,6 +83,7 @@ defineTool({
 
 defineTool({
   name: "devtools_status",
+  readOnly: true, openWorld: true,
   description:
     "Connection health and buffer accounting: which tab is attached, how many console/network/script entries are "
     + "held, whether the debugger is paused, and whether anything has been evicted from the buffers.",
@@ -197,6 +199,7 @@ defineTool({
 
 defineTool({
   name: "devtools_disconnect",
+  destructive: false, idempotent: true, openWorld: true,
   description:
     "Detach cleanly: resume the page if it is paused at a breakpoint, remove every breakpoint we set, remove the "
     + "in-page badge, and release the tab claim so another session can use it. Always call this when you are done.",
@@ -219,6 +222,7 @@ defineTool({
 
 defineTool({
   name: "list_tabs",
+  readOnly: true, openWorld: true,
   description:
     "List the debuggable tabs in Chrome with their index, title, URL, whether each is the visible one, and which "
     + "DevCDP session (if any) currently owns it. Use the index with target:'index:<n>' in devtools_connect.",
@@ -265,6 +269,7 @@ defineTool({
 
 defineTool({
   name: "sessions_list",
+  readOnly: true, openWorld: true,
   description:
     "Show every DevCDP session currently running on this machine and the tabs each one holds. Use it to understand "
     + "why a tab is unavailable, or to confirm two agents are not fighting over the same page.",

@@ -1,7 +1,38 @@
 {
   "name": "devcdp",
   "version": "5.0.0",
+  "mcpName": "io.github.dayananda-d/devcdp",
   "description": "MCP server giving AI assistants real Chrome DevTools access — console, network, DOM, source maps, breakpoints and step debugging — with multi-session tab isolation.",
+  "license": "MIT",
+  "author": {
+    "name": "Dayananda D",
+    "url": "https://github.com/Dayananda-D"
+  },
+  "homepage": "https://github.com/Dayananda-D/DevCDP#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dayananda-D/DevCDP.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Dayananda-D/DevCDP/issues"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "chrome",
+    "devtools",
+    "chrome-devtools-protocol",
+    "cdp",
+    "debugging",
+    "debugger",
+    "breakpoints",
+    "source-maps",
+    "network",
+    "console",
+    "browser-automation",
+    "ai"
+  ],
   "type": "module",
   "main": "index.js",
   "bin": {
@@ -12,10 +43,21 @@
     "server.js",
     "src/",
     "extension/",
-    "scripts/",
+    "initialize/",
+    "initialize_MCP.js",
+    "initialize_MCP.bat",
+    "debug-chrome.bat",
+    "scripts/gen-docs.mjs",
+    "scripts/call.mjs",
+    "scripts/mcp-probe.mjs",
     "docs/",
-    "devcdp.settings.example.json"
+    "devcdp.settings.example.json",
+    "GETTING-STARTED.md",
+    "PRIVACY.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",

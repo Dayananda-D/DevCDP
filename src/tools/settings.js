@@ -31,6 +31,7 @@ const GROUPS = {
 
 defineTool({
   name: "devcdp_settings",
+  readOnly: true,
   description:
     "Show every DevCDP setting: its effective value, where that value came from (default, which settings file, or which "
     + "environment variable), which files were searched and loaded, and any that failed to parse or were not recognised. "

@@ -12,6 +12,7 @@ import { listTools } from "../core/tools.js";
 
 defineTool({
   name: "workflow_guide",
+  readOnly: true,
   description:
     "How to use DevCDP effectively: the observe/act division of labour, the fastest path from a bug report to an exact "
     + "line, and the traps worth knowing. Call it once at the start of a debugging session.",

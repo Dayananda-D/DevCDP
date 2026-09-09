@@ -29,6 +29,9 @@ const registry = new Map();
  * @param {Function=} def.compact     (result) => result   applied when verbose:false
  * @param {boolean=} def.needsClient  auto-attach/reconnect before running
  * @param {boolean=} def.readOnly     does not mutate page or session state
+ * @param {boolean=} def.destructive  may change page or app state irreversibly (default: !readOnly)
+ * @param {boolean=} def.idempotent   repeating with the same args has no further effect (default: readOnly)
+ * @param {boolean=} def.openWorld    talks to something outside DevCDP — the browser, the app (default: needsClient)
  *
  * ArgSpec: { type, description, default?, required?, enum?, items?, min?, max? }
  */
@@ -49,15 +52,38 @@ export function defineTool(def) {
     if (spec.required && "default" in spec)
       throw new Error(`defineTool(${name}.${argName}): required args cannot have a default`);
   }
+  if (def.readOnly && def.destructive)
+    throw new Error(`defineTool(${name}): a read-only tool cannot also be destructive`);
 
   registry.set(name, {
     needsClient: true,
     readOnly:    false,
+    destructive: null,
+    idempotent:  null,
+    openWorld:   null,
     compact:     null,
     ...def,
     args,
   });
   return def;
+}
+
+/**
+ * MCP tool annotations, derived from the flags on the definition.
+ *
+ * Clients use these to decide what to run without asking (read-only), what to
+ * confirm (destructive), and what reaches beyond the assistant's sandbox (open
+ * world). The Claude and ChatGPT directories reject servers that leave them out, and
+ * every hint is emitted explicitly so a client never falls back to its own default.
+ */
+export function annotationsFor(t) {
+  const readOnly = !!t.readOnly;
+  return {
+    readOnlyHint:    readOnly,
+    destructiveHint: readOnly ? false : (t.destructive ?? true),
+    idempotentHint:  t.idempotent ?? readOnly,
+    openWorldHint:   t.openWorld ?? !!t.needsClient,
+  };
 }
 
 /** Every tool has `verbose` — opt into the unabridged payload. */
@@ -94,6 +120,7 @@ export function listTools() {
     name:        t.name,
     description: t.description,
     inputSchema: toJsonSchema(t.args, { includeVerbose: typeof t.compact === "function" }),
+    annotations: annotationsFor(t),
   }));
 }
 

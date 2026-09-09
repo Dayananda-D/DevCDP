@@ -31,7 +31,7 @@ How to use DevCDP effectively: the observe/act division of labour, the fastest p
 
 *No arguments.*
 
-*Works without an attached tab.*
+*Read-only; works without an attached tab.*
 
 ### `devcdp_settings`
 
@@ -42,7 +42,7 @@ Arguments:
   - `group` · *string* · default `"all"` · one of `connection`, `browser`, `indicator`, `toasts`, `tabs`, `debugger`, `liveness`, `budget`, `privacy`, `knowledge`, `app`, `buffers`, `all` — Only one group of settings.
   - `changed_only` · *boolean* · default `false` — Only settings that are not at their default.
 
-*Works without an attached tab.*
+*Read-only; works without an attached tab.*
 
 ### `devcdp_settings_init`
 
@@ -53,7 +53,7 @@ Arguments:
   - `path` · *string* — Where to write it. Defaults to devcdp.settings.json in the install directory.
   - `overwrite` · *boolean* · default `false` — Replace the file if it already exists.
 
-*Works without an attached tab.*
+*Changes page or app state; works without an attached tab.*
 
 ## Connecting
 
@@ -72,7 +72,7 @@ Arguments:
   - `allow_new_tab` · *boolean* · default `true` — If every tab is already claimed by another session, open a new one instead of failing.
   - `window` · *string* · default `"current"` · one of `current`, `new` — 'new' gives this session its own browser window — the fallback when Chrome tab groups are unavailable.
 
-*Works without an attached tab.*
+*Changes only DevCDP state; works without an attached tab.*
 
 ### `devtools_status`
 
@@ -80,7 +80,7 @@ Connection health and buffer accounting: which tab is attached, how many console
 
 *No arguments.*
 
-*Works without an attached tab.*
+*Read-only; works without an attached tab.*
 
 ### `devtools_disconnect`
 
@@ -88,7 +88,7 @@ Detach cleanly: resume the page if it is paused at a breakpoint, remove every br
 
 *No arguments.*
 
-*Works without an attached tab.*
+*Changes only DevCDP state; works without an attached tab.*
 
 ### `list_tabs`
 
@@ -100,7 +100,7 @@ Arguments:
   - `port` · *number* · default `9222` — Chrome remote-debugging port.
   - `probe` · *boolean* · default `true` — Check which tab is really visible (one extra round trip).
 
-*Works without an attached tab.*
+*Read-only; works without an attached tab.*
 
 ### `sessions_list`
 
@@ -108,7 +108,7 @@ Show every DevCDP session currently running on this machine and the tabs each on
 
 *No arguments.*
 
-*Works without an attached tab.*
+*Read-only; works without an attached tab.*
 
 ## Page control
 
@@ -122,6 +122,8 @@ Arguments:
 
   - `url` · *string* · **required** — Absolute URL to open.
 
+*Changes page or app state.*
+
 ### `page_reload`
 
 Reload the attached tab. Useful right after attaching, because console history and network traffic from before the attach cannot be recovered — a reload replays everything with DevCDP watching.
@@ -130,11 +132,15 @@ Arguments:
 
   - `bypass_cache` · *boolean* · default `false` — Ignore the HTTP cache (hard reload).
 
+*Changes page or app state.*
+
 ### `page_interrupt`
 
 Abort the JavaScript the page is currently running. Use it when a tool reports PAGE_UNRESPONSIVE — an infinite loop or a long synchronous task has blocked the main thread. This is the only thing that frees it: reloading and navigating do not, because the blocked thread never processes them. The page keeps its DOM and state; only the in-flight script is killed.
 
 *No arguments.*
+
+*Changes page or app state.*
 
 ## Console
 
@@ -153,6 +159,8 @@ Arguments:
   - `include_agent` · *boolean* · default `false` — Include DevCDP's own diagnostics, normally hidden so they cannot be mistaken for app errors.
   - `clear` · *boolean* · default `false` — Empty the buffer after reading.
 
+*Read-only.*
+
 ### `console_evaluate`
 
 Run a JavaScript expression in the page and return its value. On failure returns the full exception detail (message, 1-based line and column, URL, stack). Use it to read app state; use debugger_evaluate_at_frame instead when you are paused and need a local variable.
@@ -163,6 +171,8 @@ Arguments:
   - `await_promise` · *boolean* · default `false` — Await the result if the expression returns a promise.
   - `timeout_ms` · *number* · default `10000` — Abandon the evaluation after this long.
 
+*Changes page or app state.*
+
 ### `runtime_evaluate_many`
 
 Evaluate several named expressions in one round trip and get a map of name to result. Use it to sample a lot of app state at once instead of paying a round trip per question. Individual failures are reported per entry rather than aborting the batch.
@@ -172,11 +182,15 @@ Arguments:
   - `expressions` · *array* · **required** — Array of { name, expression } objects.
   - `await_promise` · *boolean* · default `false` — Await promise results.
 
+*Changes page or app state.*
+
 ### `console_clear`
 
 Empty the console buffer so that what you read next belongs only to the action you are about to take. Does not touch the browser's own console display.
 
 *No arguments.*
+
+*Changes only DevCDP state.*
 
 ## Network
 
@@ -200,6 +214,8 @@ Arguments:
   - `include_post_data` · *boolean* · default `false` — Include request payloads.
   - `max_body_bytes` · *number* · default `2048` — Per-body byte cap when include_bodies is set.
 
+*Read-only.*
+
 ### `network_wait_for_request`
 
 Block until a request whose URL contains url_filter completes, then return it. Event driven, so there is no polling. Call this immediately AFTER triggering the action, or pass a filter that has not fired yet — a request that already completed is returned straight away. Gives up after timeout_ms and tells you so.
@@ -211,6 +227,8 @@ Arguments:
   - `timeout_ms` · *number* · default `15000` — Give up after this long.
   - `allow_existing` · *boolean* · default `true` — Satisfy immediately from an already-completed matching request.
 
+*Read-only.*
+
 ### `network_get_response_body`
 
 Fetch the full response body for one requestId from network_get_requests. Chrome discards bodies when the page navigates, so read them while the page is still on the same document.
@@ -221,11 +239,15 @@ Arguments:
   - `requestId` · *string* — Deprecated spelling of request_id; both work.
   - `max_body_bytes` · *number* · default `0` — Byte cap; 0 means no limit.
 
+*Read-only.*
+
 ### `network_clear`
 
 Empty the network buffer so the next thing you read belongs only to the action you are about to take. Does not affect the browser's own Network panel.
 
 *No arguments.*
+
+*Changes only DevCDP state.*
 
 ## DOM
 
@@ -246,11 +268,15 @@ Arguments:
   - `include_html` · *boolean* · default `false` — Include a truncated outerHTML for each match.
   - `frame` · *string* · default `"main"` — 'main' (default), 'all', or a substring of a frame's origin/name.
 
+*Read-only.*
+
 ### `dom_list_frames`
 
 List the frames and JavaScript execution contexts in the attached tab. Use it when a selector finds nothing — the content may live in an iframe, which needs frame:'all' on dom_query.
 
 *No arguments.*
+
+*Read-only.*
 
 ### `dom_get_html`
 
@@ -263,6 +289,8 @@ Arguments:
   - `max_bytes` · *number* · default `4000` — Truncate beyond this many characters.
   - `frame` · *string* · default `"main"` — 'main' (default), or a substring of a frame's origin/name.
 
+*Read-only.*
+
 ### `dom_get_mutations`
 
 DOM changes recorded since the last call — what was added, removed or re-attributed, and where. Use it after an action to see whether the app re-rendered at all, which distinguishes 'handler never ran' from 'handler ran and produced nothing'.
@@ -272,6 +300,8 @@ Arguments:
   - `limit` · *number* · default `30` — Maximum records to return.
   - `clear` · *boolean* · default `true` — Drain the buffer as you read it.
 
+*Read-only.*
+
 ### `dialog_detect`
 
 Detect modal dialogs, alerts and confirmation overlays that are visible right now, with their title, message and button labels. Detection is structural — ARIA roles, the dialog element, and stacked-overlay geometry — so it works regardless of which UI framework drew it. Call it after any action that might raise a prompt.
@@ -279,6 +309,8 @@ Detect modal dialogs, alerts and confirmation overlays that are visible right no
 Arguments:
 
   - `frame` · *string* · default `"all"` — 'main' (default) or 'all' to include iframes.
+
+*Read-only.*
 
 ## Driving the page
 
@@ -294,6 +326,8 @@ Arguments:
   - `filter` · *string* — Only controls whose text, id or name contains this.
   - `kind` · *string* · default `"all"` · one of `all`, `buttons`, `inputs`, `links`, `selects` — Restrict to one family of control.
   - `frame` · *string* · default `"main"` — 'main' (default) or a substring of a frame's origin/name.
+
+*Read-only.*
 
 ### `ui_click`
 
@@ -314,6 +348,8 @@ Arguments:
   - `modifiers` · *array* — Held while clicking: shift, ctrl, alt, meta.
   - `force` · *boolean* · default `false` — Skip the hit-test and click the centre regardless of what is on top. A last resort — it is how you click the wrong thing.
 
+*Changes page or app state.*
+
 ### `ui_fill`
 
 Set the value of a text field, textarea or contenteditable in one step: assign it and fire input and change. Fast, and it does NOT go through the browser's key-event pipeline — no keydown, no keypress — so the field's own input rules never run. maxlength, digits-only keypress guards and input masks are all bypassed, which is exactly what you want to put a value past a mask and test what happens downstream, and exactly what you do not want when reproducing what a user did: it can leave the field in a state the UI itself would not allow. Use ui_type for that, and for anything reacting per keystroke such as a typeahead.
@@ -330,6 +366,8 @@ Arguments:
   - `timeout_ms` · *number* · default `5000` — How long to wait for the element to become actionable before giving up.
   - `value` · *string* · **required** — The text to put in the field. Pass an empty string to clear it.
   - `submit` · *boolean* · default `false` — Press Enter afterwards.
+
+*Changes page or app state.*
 
 ### `ui_type`
 
@@ -350,6 +388,8 @@ Arguments:
   - `delay_ms` · *number* · default `12` — Pause between keystrokes. Raise it if the field drops characters.
   - `submit` · *boolean* · default `false` — Press Enter afterwards.
 
+*Changes page or app state.*
+
 ### `ui_select`
 
 Choose an option in a dropdown, by visible label or by value. Handles a native <select> directly; for the custom dropdowns most applications actually use — a div that opens a list — it opens the control and clicks the matching option. Reports the options it could see when nothing matches, which is usually the whole answer.
@@ -367,6 +407,8 @@ Arguments:
   - `option` · *string* · **required** — The option's visible label, or its value attribute.
   - `by` · *string* · default `"either"` · one of `label`, `value`, `either` — Match the label, the value, or either.
 
+*Changes page or app state.*
+
 ### `ui_check`
 
 Set a checkbox or radio to a specific state, rather than toggling it blindly. Reads the current state first and clicks only if it differs, so calling it twice does not undo the first call — the usual way a 'toggle' helper leaves a form in the wrong state.
@@ -382,6 +424,8 @@ Arguments:
   - `frame` · *string* · default `"main"` — 'main' (default) or a substring of a frame's origin/name. Single-page apps often render the screen you want in a child frame.
   - `timeout_ms` · *number* · default `5000` — How long to wait for the element to become actionable before giving up.
   - `checked` · *boolean* · default `true` — The state you want.
+
+*Changes page or app state.*
 
 ### `ui_press`
 
@@ -401,6 +445,8 @@ Arguments:
   - `modifiers` · *array* — Held while pressing: shift, ctrl, alt, meta.
   - `times` · *number* · default `1` — Press it this many times.
 
+*Changes page or app state.*
+
 ### `ui_hover`
 
 Move the pointer over an element and leave it there. Use before clicking anything that only appears on hover — dropdown menus, row action buttons, tooltips — because those elements do not exist to click until something is hovering over their parent.
@@ -416,6 +462,8 @@ Arguments:
   - `frame` · *string* · default `"main"` — 'main' (default) or a substring of a frame's origin/name. Single-page apps often render the screen you want in a child frame.
   - `timeout_ms` · *number* · default `5000` — How long to wait for the element to become actionable before giving up.
 
+*Changes only DevCDP state.*
+
 ### `ui_scroll`
 
 Scroll the page, or scroll a specific container. Needed before interacting with anything in a virtualised list or grid, where rows outside the viewport do not exist in the DOM at all — scrolling is what creates them.
@@ -430,6 +478,8 @@ Arguments:
   - `to` · *string* · default `"none"` · one of `top`, `bottom`, `none` — Jump instead of scrolling by an amount.
   - `frame` · *string* · default `"main"` — 'main' (default) or a substring of a frame's origin/name.
   - `timeout_ms` · *number* · default `5000` — How long to wait for the container.
+
+*Changes only DevCDP state.*
 
 ### `ui_drag`
 
@@ -447,6 +497,8 @@ Arguments:
   - `frame` · *string* · default `"main"` — 'main' (default) or a substring of a frame's origin/name.
   - `timeout_ms` · *number* · default `5000` — How long to wait for either element to become actionable.
 
+*Changes page or app state.*
+
 ### `ui_upload`
 
 Attach one or more local files to a file input, without opening the operating system's file picker — which automation cannot drive at all. Give the absolute paths of files on the machine running Chrome.
@@ -462,6 +514,8 @@ Arguments:
   - `frame` · *string* · default `"main"` — 'main' (default) or a substring of a frame's origin/name. Single-page apps often render the screen you want in a child frame.
   - `timeout_ms` · *number* · default `5000` — How long to wait for the element to become actionable before giving up.
   - `files` · *array* · **required** — Absolute paths to the files to attach.
+
+*Changes page or app state.*
 
 ### `ui_wait_for`
 
@@ -479,6 +533,8 @@ Arguments:
   - `timeout_ms` · *number* · default `5000` — How long to wait for the element to become actionable before giving up.
   - `state` · *string* · default `"visible"` · one of `visible`, `hidden`, `enabled`, `detached`, `stable` — What to wait for: 'visible' (default), 'hidden', 'enabled', 'detached', or 'stable' (present and no longer moving).
   - `contains_text` · *string* — Also require the element to contain this text.
+
+*Read-only.*
 
 ### `page_screenshot`
 
@@ -499,6 +555,8 @@ Arguments:
   - `save_to` · *string* — Absolute path to write to. Defaults to a timestamped file in the screenshotDir setting.
   - `inline` · *boolean* · default `false` — Also return the image itself so you can see it. Expensive — a large capture can cost more context than every tool description combined.
 
+*Read-only.*
+
 ## Sources
 
 `source_search` is the fastest route from a symptom to a line number when you do not know the file. Original pre-bundling files are recovered from source maps where they exist, and clearly labelled when they do not.
@@ -512,6 +570,8 @@ Arguments:
   - `filter` · *string* — Only scripts whose URL contains this substring.
   - `with_source_maps` · *boolean* · default `false` — Only scripts that carry a source map.
   - `limit` · *number* · default `100` — Maximum scripts to return.
+
+*Read-only.*
 
 ### `source_search`
 
@@ -527,6 +587,8 @@ Arguments:
   - `max_results` · *number* · default `40` — Stop after this many matches.
   - `context_chars` · *number* · default `200` — Characters of the matching line to return.
 
+*Read-only.*
+
 ### `source_get_script`
 
 Read the source Chrome actually loaded, by scriptId or URL substring, optionally a line range. Lines come back numbered so the numbers you quote to a breakpoint are the numbers you saw.
@@ -538,6 +600,8 @@ Arguments:
   - `start_line` · *number* — First line to return (1-based).
   - `end_line` · *number* — Last line to return (1-based).
 
+*Read-only.*
+
 ### `source_list_files`
 
 List the original source files recoverable from the page's source maps — the pre-bundling file tree. Use it to discover real file paths before calling source_get_file or setting a breakpoint on an original file.
@@ -546,6 +610,8 @@ Arguments:
 
   - `filter` · *string* — Only paths containing this substring.
   - `limit` · *number* · default `200` — Maximum paths to return.
+
+*Read-only.*
 
 ### `source_get_file`
 
@@ -556,6 +622,8 @@ Arguments:
   - `path` · *string* · **required** — Original file path or a suffix of it, e.g. 'components/SaveButton.tsx'.
   - `start_line` · *number* — First line to return (1-based).
   - `end_line` · *number* — Last line to return (1-based).
+
+*Read-only.*
 
 ## Debugger
 
@@ -573,6 +641,8 @@ Arguments:
   - `condition` · *string* — JavaScript condition — pause only when it is truthy, e.g. 'id === 42'.
   - `auto_resume` · *boolean* · default `true` — Default true: capture scope/console/network on hit, then resume, so the page is never left frozen and the action that tripped it completes. Pass false to hold the pause for stepping; released after maxPauseMs regardless.
 
+*Changes only DevCDP state.*
+
 ### `debugger_set_breakpoint_at_function`
 
 Set a breakpoint on a function you can name, without knowing which file it lives in. Give any expression that evaluates to a function — 'app.saveOrder', 'MyClass.prototype.load', a framework helper — and DevCDP finds its definition and breaks at its first statement. Use this when you know what runs but not where it is defined; use debugger_set_breakpoint when you already have a file and line.
@@ -583,13 +653,15 @@ Arguments:
   - `condition` · *string* — JavaScript condition — pause only when it is truthy, e.g. 'id === 42'.
   - `auto_resume` · *boolean* · default `true` — Default true: capture scope/console/network on hit, then resume, so the page is never left frozen and the action that tripped it completes. Pass false to hold the pause for stepping; released after maxPauseMs regardless.
 
+*Changes only DevCDP state.*
+
 ### `debugger_list_breakpoints`
 
 List the breakpoints DevCDP has set, including whether each is actually bound to executable code. An unbound breakpoint will never fire — check here first when a breakpoint 'is not hitting'.
 
 *No arguments.*
 
-*Works without an attached tab.*
+*Read-only; works without an attached tab.*
 
 ### `debugger_remove_breakpoint`
 
@@ -599,11 +671,15 @@ Arguments:
 
   - `breakpoint_id` · *string* · **required** — breakpointId from debugger_set_breakpoint.
 
+*Changes only DevCDP state.*
+
 ### `debugger_remove_all_breakpoints`
 
 Remove every breakpoint DevCDP set, and resume the page if it is currently paused. Call this before handing the browser back to a human, so they do not find a frozen app.
 
 *No arguments.*
+
+*Changes only DevCDP state.*
 
 ### `debugger_pause`
 
@@ -611,11 +687,15 @@ Pause JavaScript execution at the next statement the page runs, and hold it so y
 
 *No arguments.*
 
+*Changes only DevCDP state.*
+
 ### `debugger_resume`
 
 Resume execution and drop any hold. Breakpoints resume themselves by default, so this is only needed after an explicit pause, after stepping, or after a breakpoint set with auto_resume:false.
 
 *No arguments.*
+
+*Changes only DevCDP state.*
 
 ### `debugger_step_over`
 
@@ -623,11 +703,15 @@ Step over from the current pause and stop at the next statement. Stepping implie
 
 *No arguments.*
 
+*Changes only DevCDP state.*
+
 ### `debugger_step_into`
 
 Step into from the current pause and stop at the next statement. Stepping implies you want the pause held, so it will not auto-resume between steps — but it is still released automatically after maxPauseMs if you stop. The new location and scope are available from debugger_get_state and debugger_get_scope once it settles.
 
 *No arguments.*
+
+*Changes only DevCDP state.*
 
 ### `debugger_step_out`
 
@@ -635,13 +719,15 @@ Step out from the current pause and stop at the next statement. Stepping implies
 
 *No arguments.*
 
+*Changes only DevCDP state.*
+
 ### `debugger_get_state`
 
 Where execution is paused right now: the reason, and the full call stack with function names and 1-based file positions. Returns paused:false when the page is running.
 
 *No arguments.*
 
-*Works without an attached tab.*
+*Read-only; works without an attached tab.*
 
 ### `debugger_get_scope`
 
@@ -654,6 +740,8 @@ Arguments:
   - `max_properties` · *number* · default `30` — Maximum properties per object.
   - `include_global` · *boolean* · default `false` — Include the global scope (thousands of properties).
 
+*Read-only.*
+
 ### `debugger_evaluate_at_frame`
 
 Evaluate an expression in the scope of a paused call frame, so local variables and closures are in scope. This is how you confirm a hypothesis with a real value rather than inferring one.
@@ -664,13 +752,15 @@ Arguments:
   - `frame_index` · *number* · default `0` — Which frame; 0 is innermost.
   - `depth` · *number* · default `2` — How deep to expand an object result.
 
+*Changes page or app state.*
+
 ### `debugger_get_capture`
 
 Everything captured automatically at the last breakpoint hit — scope for the top frames, recent console output and recent network requests — in one call instead of four. Tells you whether the pause is still current or has already resumed, so a stale snapshot is never mistaken for live state.
 
 *No arguments.*
 
-*Works without an attached tab.*
+*Read-only; works without an attached tab.*
 
 ## Understanding an unfamiliar app
 
@@ -682,6 +772,8 @@ Ask the running page what it is: which UI libraries it uses, how it routes, how 
 
 *No arguments.*
 
+*Read-only.*
+
 ### `api_discover`
 
 Build a map of the backend the page actually talks to: endpoints grouped with ids collapsed, call counts, status codes, timings and failures — plus an OpenAPI/Swagger specification if the server publishes one at a standard path. Use it to understand the API surface, and to see at a glance which calls are failing.
@@ -690,6 +782,8 @@ Arguments:
 
   - `probe_openapi` · *boolean* · default `true` — Also try standard OpenAPI discovery paths on the page's origin.
   - `include_static` · *boolean* · default `false` — Include scripts, styles, images and fonts, not just data calls.
+
+*Read-only.*
 
 ### `docs_outline`
 
@@ -700,7 +794,7 @@ Arguments:
   - `max_files` · *number* · default `40` — Maximum files to describe.
   - `root` · *string* — Override the docs root for this call.
 
-*Works without an attached tab.*
+*Read-only; works without an attached tab.*
 
 ### `docs_search`
 
@@ -713,7 +807,7 @@ Arguments:
   - `context_lines` · *number* · default `4` — Lines of surrounding context per hit.
   - `root` · *string* — Override the docs root for this call.
 
-*Works without an attached tab.*
+*Read-only; works without an attached tab.*
 
 ## Working with a human
 
@@ -728,6 +822,8 @@ Arguments:
   - `action` · *string* · **required** · one of `navigate`, `click`, `fill`, `debug`, `network`, `dom`, `evaluate`, `breakpoint`, `found`, `waiting`, `done`, `error` — What you are doing.
   - `detail` · *string* · **required** — Short human-readable detail, e.g. 'checking the save handler'.
 
+*Changes only DevCDP state.*
+
 ### `session_ask_user`
 
 Ask the human to do something in the browser, and show the request in the on-page badge with a confirmation button. Returns immediately — poll session_poll_user_action for the outcome. Also relay the instruction in your reply, so it is visible whether or not they are looking at the browser window.
@@ -737,13 +833,15 @@ Arguments:
   - `instruction` · *string* · **required** — Exactly what the person should do, in one sentence.
   - `wait_for` · *string* · default `"confirmation"` · one of `confirmation`, `navigation`, `click`, `dialog`, `any_action` — What counts as done. 'confirmation' — the on-page button — is the only unambiguous one.
 
+*Changes only DevCDP state.*
+
 ### `session_poll_user_action`
 
 Check whether the human has completed what session_ask_user requested. Returns acted:false while waiting. Poll at a human pace — a few seconds apart — rather than in a tight loop.
 
 *No arguments.*
 
-*Works without an attached tab.*
+*Read-only; works without an attached tab.*
 
 ### `session_get_user_actions`
 
@@ -755,7 +853,7 @@ Arguments:
   - `limit` · *number* · default `30` — Maximum actions to return.
   - `kinds` · *array* — Restrict to these kinds, e.g. ['click','input_change','option_chosen'].
 
-*Works without an attached tab.*
+*Read-only; works without an attached tab.*
 
 ## Session bookkeeping
 
@@ -770,6 +868,8 @@ Arguments:
   - `goal` · *string* · **required** — What you are trying to find out or prove.
   - `steps` · *array* · **required** — Ordered steps, each { id, description, actor }. actor is 'agent', 'user' or 'either'.
 
+*Changes only DevCDP state.*
+
 ### `session_step_done`
 
 Mark the current step complete with what you found, and advance. Returns the next step, or allDone when the plan is finished.
@@ -778,7 +878,7 @@ Arguments:
 
   - `result` · *string* — What this step established — a real observed value, not a guess.
 
-*Works without an attached tab.*
+*Changes only DevCDP state; works without an attached tab.*
 
 ### `session_step_failed`
 
@@ -788,7 +888,7 @@ Arguments:
 
   - `reason` · *string* · **required** — Why the step could not be completed.
 
-*Works without an attached tab.*
+*Changes only DevCDP state; works without an attached tab.*
 
 ### `session_get_status`
 
@@ -796,7 +896,7 @@ Where the session plan stands: the goal, each step's status, which step is curre
 
 *No arguments.*
 
-*Works without an attached tab.*
+*Read-only; works without an attached tab.*
 
 ### `session_get_activity`
 
@@ -808,7 +908,7 @@ Arguments:
   - `since` · *string* — ISO timestamp lower bound.
   - `limit` · *number* · default `30` — Maximum entries.
 
-*Works without an attached tab.*
+*Read-only; works without an attached tab.*
 
 ### `session_get_state`
 
@@ -823,13 +923,15 @@ Arguments:
   - `mut_limit` · *number* · default `20` — Maximum DOM mutation records.
   - `errors_only` · *boolean* · default `false` — Restrict console to warnings and errors, and network to failures.
 
+*Read-only.*
+
 ### `session_end`
 
 Close the session and return a summary. Does not detach — call devtools_disconnect to release the tab and clear breakpoints when you are finished with the browser entirely.
 
 *No arguments.*
 
-*Works without an attached tab.*
+*Changes only DevCDP state; works without an attached tab.*
 
 ## Learned memory
 
@@ -847,7 +949,7 @@ Arguments:
   - `limit` · *number* · default `12` — Maximum entries to return.
   - `full` · *boolean* · default `false` — Return complete entries instead of summaries.
 
-*Works without an attached tab.*
+*Read-only; works without an attached tab.*
 
 ### `memory_record`
 
@@ -862,7 +964,7 @@ Arguments:
   - `url_pattern` · *string* — URL substring this applies to, so it can be matched to a page later.
   - `shared` · *boolean* · default `false` — Write to the shared team store instead of local, if one is configured.
 
-*Works without an attached tab.*
+*Changes only DevCDP state; works without an attached tab.*
 
 ### `memory_import_legacy`
 
@@ -872,9 +974,13 @@ Arguments:
 
   - `path` · *string* · **required** — Full path to the old memorymanagement.md.
 
-*Works without an attached tab.*
+*Changes only DevCDP state; works without an attached tab.*
 
 ---
+
+Each tool also carries MCP annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`),
+which is what the notes above are generated from. A client may run read-only tools without asking and
+should confirm the ones that change page or app state.
 
 Every failure comes back as `{ok: false, code, message, hint}`; the `hint` names the next action.
 Common codes: `NOT_CONNECTED`, `TARGET_CLAIMED`, `TARGET_GONE`, `PAGE_UNRESPONSIVE`, `BREAKPOINT_UNBOUND`,

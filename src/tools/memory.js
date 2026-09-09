@@ -22,6 +22,7 @@ const summarise = e => ({
 
 defineTool({
   name: "memory_get",
+  readOnly: true,
   description:
     "Look up what previous sessions learned about this app — failures and the recovery that worked. Returns short "
     + "summaries so it is cheap to call at the start of a session; pass full:true or an id to read one in detail. "
@@ -66,6 +67,7 @@ defineTool({
 
 defineTool({
   name: "memory_record",
+  destructive: false,
   description:
     "Record a failure and the recovery that worked, so a later session can skip the dead end. Call it after any "
     + "user-assisted recovery or non-obvious workaround. All four fields are required and validated — a vague entry "
@@ -113,6 +115,7 @@ defineTool({
 
 defineTool({
   name: "memory_import_legacy",
+  destructive: false,
   description:
     "One-off import of a v4 Markdown memory file into the current store, skipping the malformed entries v4's missing "
     + "validation produced. Run once after upgrading, then delete the old file.",

@@ -33,7 +33,10 @@ DevCDP-session-handout.pdf
 # files here or use these prefixes, and they can never be committed by accident.
 scratch/
 tmp/
-scripts/
+scripts/*
+!scripts/gen-docs.mjs
+!scripts/call.mjs
+!scripts/mcp-probe.mjs
 probe-*.mjs
 shoot-*.mjs
 bench.*

@@ -25,6 +25,7 @@ function byteClip(str, maxBytes) {
 
 defineTool({
   name: "network_get_requests",
+  readOnly: true,
   description:
     "List HTTP requests captured since attach, with method, status, duration, size and initiator. Filter by URL "
     + "substring, method, status or failures only. Response bodies are opt-in via include_bodies because they are "
@@ -94,6 +95,7 @@ defineTool({
 
 defineTool({
   name: "network_wait_for_request",
+  readOnly: true,
   description:
     "Block until a request whose URL contains url_filter completes, then return it. Event driven, so there is no "
     + "polling. Call this immediately AFTER triggering the action, or pass a filter that has not fired yet — a "
@@ -153,6 +155,7 @@ defineTool({
 
 defineTool({
   name: "network_get_response_body",
+  readOnly: true,
   description:
     "Fetch the full response body for one requestId from network_get_requests. Chrome discards bodies when the page "
     + "navigates, so read them while the page is still on the same document.",
@@ -197,6 +200,7 @@ defineTool({
 
 defineTool({
   name: "network_clear",
+  destructive: false, idempotent: true,
   description:
     "Empty the network buffer so the next thing you read belongs only to the action you are about to take. "
     + "Does not affect the browser's own Network panel.",

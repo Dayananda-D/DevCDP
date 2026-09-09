@@ -48,6 +48,54 @@ await check("every tool has a substantial description (TOOL-4)", () => {
   assert.deepEqual(bad.map(t => t.name), [], `missing descriptions: ${bad.map(t => t.name).join(", ")}`);
 });
 
+await check("release metadata agrees across package.json, server.json, plugin and marketplace (PUB-1)", () => {
+  const read = f => JSON.parse(fs.readFileSync(f, "utf8"));
+  const pkg = read("package.json"), srv = read("server.json");
+  const plugin = read("plugins/devcdp/.claude-plugin/plugin.json"), market = read(".claude-plugin/marketplace.json");
+  assert.equal(srv.name, pkg.mcpName, "server.json name must equal package.json mcpName (registry verifies this)");
+  assert.equal(srv.version, pkg.version, "server.json version");
+  assert.equal(srv.packages[0].version, pkg.version, "server.json packages[0].version");
+  assert.equal(srv.packages[0].identifier, pkg.name, "server.json package identifier");
+  assert.ok(srv.description.length <= 100, "registry description is capped at 100 characters");
+  assert.equal(plugin.version, pkg.version, "plugin.json version");
+  assert.equal(market.plugins[0].version, pkg.version, "marketplace.json plugin version");
+  assert.equal(market.plugins[0].source, "./plugins/devcdp");
+  assert.equal(pkg.license, "MIT");
+  for (const f of ["LICENSE", "PRIVACY.md", "plugins/devcdp/.mcp.json", "plugins/devcdp/bin/launch.mjs"])
+    assert.ok(fs.existsSync(f), `${f} must ship`);
+});
+
+await check("the plugin skill carries the same guidance the installer writes (PUB-2)", async () => {
+  const { generateSkill } = await import("../scripts/gen-docs.mjs");
+  const committed = fs.readFileSync("plugins/devcdp/skills/devcdp/SKILL.md", "utf8").replace(/\r\n/g, "\n");
+  assert.equal(committed, generateSkill(), "plugins/devcdp/skills/devcdp/SKILL.md is out of date — run `npm run docs`");
+});
+
+await check("every tool carries all four MCP annotations, explicitly (directory requirement)", () => {
+  const keys = ["readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint"];
+  const bad = tools.filter(t => !t.annotations || keys.some(k => typeof t.annotations[k] !== "boolean"));
+  assert.deepEqual(bad.map(t => t.name), [], `incomplete annotations: ${bad.map(t => t.name).join(", ")}`);
+});
+
+await check("no tool is both read-only and destructive", () => {
+  const bad = tools.filter(t => t.annotations.readOnlyHint && t.annotations.destructiveHint);
+  assert.deepEqual(bad.map(t => t.name), []);
+});
+
+await check("tools that drive or change the page are not marked read-only", () => {
+  const mutators = tools.filter(t => /^(ui_(click|fill|type|select|check|press|drag|upload)|page_(navigate|reload|interrupt)|console_evaluate|runtime_evaluate_many|debugger_evaluate_at_frame)$/.test(t.name));
+  assert.ok(mutators.length >= 14, "expected the page-changing tools to be present");
+  const bad = mutators.filter(t => t.annotations.readOnlyHint || !t.annotations.destructiveHint);
+  assert.deepEqual(bad.map(t => t.name), [], `should be destructive: ${bad.map(t => t.name).join(", ")}`);
+});
+
+await check("readers are marked read-only, so clients can run them without confirmation", () => {
+  const readers = tools.filter(t => /^(console_get_logs|network_get_requests|dom_query|dom_get_html|source_search|source_get_file|debugger_get_scope|ui_inspect|page_screenshot|list_tabs)$/.test(t.name));
+  assert.equal(readers.length, 10);
+  const bad = readers.filter(t => !t.annotations.readOnlyHint);
+  assert.deepEqual(bad.map(t => t.name), [], `should be read-only: ${bad.map(t => t.name).join(", ")}`);
+});
+
 await check("every argument is documented", () => {
   const bad = [];
   for (const t of tools) {

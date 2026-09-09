@@ -70,6 +70,7 @@ async function withoutOverlay(ctx, hide, capture) {
 
 defineTool({
   name: "page_screenshot",
+  readOnly: true,
   description:
     "Capture what is on screen: the viewport, the whole scrollable page, one element, or an explicit rectangle. "
     + "Name the element the same way as the ui_* tools — by CSS selector, by the text a person reads, or by test id — "

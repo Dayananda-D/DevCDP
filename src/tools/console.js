@@ -8,6 +8,7 @@ const norm = l => LEVEL_ALIASES[l] || l;
 
 defineTool({
   name: "console_get_logs",
+  readOnly: true,
   description:
     "Read console output captured since attach: logs, warnings, uncaught exceptions with file, line and stack. "
     + "Pass cursor=nextCursor from a previous call to get only what is new. Note that Chrome does not replay "
@@ -178,6 +179,7 @@ defineTool({
 
 defineTool({
   name: "console_clear",
+  destructive: false, idempotent: true,
   description:
     "Empty the console buffer so that what you read next belongs only to the action you are about to take. "
     + "Does not touch the browser's own console display.",

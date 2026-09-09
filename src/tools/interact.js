@@ -287,6 +287,7 @@ defineTool({
 
 defineTool({
   name: "ui_hover",
+  destructive: false,
   description:
     "Move the pointer over an element and leave it there. Use before clicking anything that only appears on hover — "
     + "dropdown menus, row action buttons, tooltips — because those elements do not exist to click until something "
@@ -356,6 +357,7 @@ defineTool({
 
 defineTool({
   name: "ui_scroll",
+  destructive: false,
   description:
     "Scroll the page, or scroll a specific container. Needed before interacting with anything in a virtualised list "
     + "or grid, where rows outside the viewport do not exist in the DOM at all — scrolling is what creates them.",
@@ -804,6 +806,7 @@ defineTool({
 
 defineTool({
   name: "ui_wait_for",
+  readOnly: true,
   description:
     "Block until the page reaches a state: an element appears, disappears, becomes enabled, or some text shows up. "
     + "This is the honest alternative to guessing a sleep — it returns as soon as the condition holds, and when it "
@@ -880,6 +883,7 @@ defineTool({
 
 defineTool({
   name: "ui_inspect",
+  readOnly: true,
   description:
     "List what can be interacted with on the current screen — buttons, links, inputs, selects and anything with an "
     + "interactive ARIA role — with the target you would use to reach each one. Use it when a selector fails and you "

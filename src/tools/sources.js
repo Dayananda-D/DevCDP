@@ -22,6 +22,7 @@ const sliceLines = (text, from, to) => {
 
 defineTool({
   name: "source_list_scripts",
+  readOnly: true,
   description:
     "List the JavaScript files loaded in the page, with size and whether each has a source map. This is indexed the "
     + "moment DevCDP attaches, so it works on a page that was already open. Filter by URL substring to find the file "
@@ -69,6 +70,7 @@ defineTool({
 
 defineTool({
   name: "source_search",
+  readOnly: true,
   description:
     "Search the text of every loaded script — and every original file recoverable from source maps — for a string or "
     + "regular expression. This is the fastest way to locate a handler when you know a function name, a message or a "
@@ -272,6 +274,7 @@ async function cachedSource(ctx, scriptId) {
 
 defineTool({
   name: "source_get_script",
+  readOnly: true,
   description:
     "Read the source Chrome actually loaded, by scriptId or URL substring, optionally a line range. Lines come back "
     + "numbered so the numbers you quote to a breakpoint are the numbers you saw.",
@@ -316,6 +319,7 @@ defineTool({
 
 defineTool({
   name: "source_list_files",
+  readOnly: true,
   description:
     "List the original source files recoverable from the page's source maps — the pre-bundling file tree. Use it to "
     + "discover real file paths before calling source_get_file or setting a breakpoint on an original file.",
@@ -351,6 +355,7 @@ defineTool({
 
 defineTool({
   name: "source_get_file",
+  readOnly: true,
   description:
     "Read an original pre-bundling source file via the page's source maps. Falls back to the loaded script when no "
     + "map is available, and always tells you which of the two you got, so a bundle line is never mistaken for an "

@@ -153,6 +153,7 @@ const DISCOVERY_EXPR = `JSON.stringify((function(){
 
 defineTool({
   name: "app_discover",
+  readOnly: true,
   description:
     "Ask the running page what it is: which UI libraries it uses, how it routes, how many frames it has, and its "
     + "actual interactive surface — visible buttons, fields, grids and tabs with working selectors. Call this once "
@@ -230,6 +231,7 @@ function summariseEndpoints(requests) {
 
 defineTool({
   name: "api_discover",
+  readOnly: true,
   description:
     "Build a map of the backend the page actually talks to: endpoints grouped with ids collapsed, call counts, status "
     + "codes, timings and failures — plus an OpenAPI/Swagger specification if the server publishes one at a standard "
@@ -331,6 +333,7 @@ function walkDocs(root, { maxFiles = 400, maxDepth = 6 } = {}) {
 
 defineTool({
   name: "docs_search",
+  readOnly: true,
   description:
     "Search the project's own documentation — README and any markdown/text/pdf docs under the configured docs root — and "
     + "return matching passages with file and line. Use it to learn what a screen, field or business term means in "
@@ -400,6 +403,7 @@ defineTool({
 
 defineTool({
   name: "docs_outline",
+  readOnly: true,
   description:
     "List the documentation available under the docs root, with each file's headings, so you can see what the project "
     + "documents before searching. A good first call when you do not yet know the app's vocabulary.",
