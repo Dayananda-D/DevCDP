@@ -88,14 +88,28 @@ The repo is already a marketplace. Anyone can install today with:
 /plugin install devcdp@devcdp
 ```
 
-The plugin's launcher (`plugins/devcdp/bin/launch.mjs`) installs the npm package into
+The plugin's launcher (`plugins/devcdp/scripts/launch.mjs`) installs the npm package into
 the plugin's data directory on first run, so step 1 must be done first, and the
 plugin version must exist on npm.
 
-Anthropic's curated marketplace does not take pull requests from outside. Third-party
-plugins go through the submission form at https://clau.de/plugin-directory-submission
-(linked from the README of https://github.com/anthropics/claude-plugins-official). Give
-it this repository, the plugin path `plugins/devcdp`, and the description above.
+Anthropic runs two public marketplaces. `claude-plugins-official` is curated by Anthropic
+at its discretion with no application process. `claude-community`
+(https://github.com/anthropics/claude-plugins-community) takes third-party submissions
+after review; users add it with `/plugin marketplace add anthropics/claude-plugins-community`.
+
+Before submitting, run the same check the review pipeline runs:
+
+```
+claude plugin validate ./plugins/devcdp --strict
+```
+
+Then submit through the Console form at https://platform.claude.com/plugins/submit
+(the claude.ai form needs a Team or Enterprise organization). Give it this repository,
+the plugin path `plugins/devcdp`, and the description above. Approved plugins are
+pinned to a commit SHA in the community catalog and re-pinned automatically as you push;
+the catalog syncs nightly. Note that a plugin's `bin/` directory is added to the Bash
+tool's PATH and blocks claude.ai org distribution, which is why the launcher lives in
+`scripts/`, not `bin/`.
 
 Also list the marketplace on https://claudecodemarketplace.com (community index).
 

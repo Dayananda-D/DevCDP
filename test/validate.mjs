@@ -61,7 +61,7 @@ await check("release metadata agrees across package.json, server.json, plugin an
   assert.equal(market.plugins[0].version, pkg.version, "marketplace.json plugin version");
   assert.equal(market.plugins[0].source, "./plugins/devcdp");
   assert.equal(pkg.license, "MIT");
-  for (const f of ["LICENSE", "PRIVACY.md", "plugins/devcdp/.mcp.json", "plugins/devcdp/bin/launch.mjs"])
+  for (const f of ["LICENSE", "PRIVACY.md", "plugins/devcdp/.mcp.json", "plugins/devcdp/scripts/launch.mjs"])
     assert.ok(fs.existsSync(f), `${f} must ship`);
 });
 
