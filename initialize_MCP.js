@@ -38,10 +38,16 @@ const EXTENSION   = path.join(__dirname, "extension").replace(/\\/g, "/");
 // install directory but is not the canonical "devcdp" entry.
 export function isStaleEntry(name, entry) {
   if (name === "devcdp") return false;
-  const args = Array.isArray(entry?.args) ? entry.args : [];
+  // Both spellings. Most clients split command from args; opencode flattens the lot
+  // into one `command` array. Reading only `args` meant a stale opencode entry left
+  // by an older install was invisible here and never cleaned up.
+  const parts = [
+    ...(Array.isArray(entry?.args) ? entry.args : []),
+    ...(Array.isArray(entry?.command) ? entry.command : []),
+  ];
   const here = path.resolve(__dirname).toLowerCase();
 
-  return args.some(a => {
+  return parts.some(a => {
     if (typeof a !== "string" || !a) return false;
 
     // Only absolute paths are considered. path.resolve() on a relative argument
@@ -112,7 +118,32 @@ export const TARGETS = [
     // mcpServers, so Zed never worked while the docs claimed it did.
     shape: "contextServers", jsonc: true,
   },
+  {
+    id: "opencode", name: "opencode",
+    file: opencodeConfigFile(),
+    markers: [path.join(os.homedir(), ".config", "opencode")],
+    // Comments are legal in opencode.jsonc, so one carrying them is reported and left
+    // alone rather than rewritten without them.
+    shape: "opencode", jsonc: true,
+  },
 ];
+
+/**
+ * opencode's global config, which may carry either extension.
+ *
+ * It reads opencode.json and opencode.jsonc from the same directory, and a real install
+ * was found using the .jsonc spelling — so defaulting to .json would have written a
+ * second config file alongside the one actually in use, and the entry would simply
+ * never have loaded. Prefer whichever exists; create .json only when neither does.
+ */
+function opencodeConfigFile() {
+  const dir = path.join(os.homedir(), ".config", "opencode");
+  for (const name of ["opencode.jsonc", "opencode.json"]) {
+    const f = path.join(dir, name);
+    if (fs.existsSync(f)) return f;
+  }
+  return path.join(dir, "opencode.json");
+}
 
 // ─── assistant guidance ──────────────────────────────────────────────────────
 //
@@ -183,6 +214,11 @@ export function guidanceTargetFor(id) {
       return { file: path.join(os.homedir(), ".claude", "CLAUDE.md"), scope: "user" };
     case "windsurf":
       return { file: path.join(os.homedir(), ".codeium", "windsurf", "memories", "global_rules.md"), scope: "user" };
+    case "opencode":
+      // opencode reads global rules from AGENTS.md beside its config. It also falls
+      // back to ~/.claude/CLAUDE.md for Claude Code compatibility, but AGENTS.md takes
+      // precedence — so writing the fallback would be silently overridden.
+      return { file: path.join(os.homedir(), ".config", "opencode", "AGENTS.md"), scope: "user" };
     case "cursor":
       return { scope: "project", where: "AGENTS.md in each project you debug" };
     case "zed":
@@ -326,6 +362,13 @@ export function entriesFor(shape, { playwrightVersion, includeAutomation }) {
     const wrap = e => ({ source: "custom", command: e.command, args: e.args, env: {} });
     return { key: "context_servers", devcdp: wrap(devcdp), automation: automation ? wrap(automation) : null };
   }
+  if (shape === "opencode") {
+    // One flattened array: opencode's schema has no separate args field, and its
+    // additionalProperties is false — so an `args` or `env` key does not get politely
+    // ignored, it makes the whole config invalid and every server in it stop loading.
+    const wrap = e => ({ type: "local", command: [e.command, ...e.args], enabled: true });
+    return { key: "mcp", devcdp: wrap(devcdp), automation: automation ? wrap(automation) : null };
+  }
   if (shape === "vscode") {
     const wrap = e => ({ type: "stdio", command: e.command, args: e.args });
     return { key: "mcp.servers", devcdp: wrap(devcdp), automation: automation ? wrap(automation) : null, nested: ["mcp", "servers"] };
@@ -349,7 +392,10 @@ export function entriesFor(shape, { playwrightVersion, includeAutomation }) {
  * @returns {boolean} whether anything was changed.
  */
 export function stripDevCdpEndpoint(entry) {
-  const args = Array.isArray(entry?.args) ? entry.args : null;
+  // Whichever array this client keeps its arguments in; spliced in place either way.
+  const args = Array.isArray(entry?.args) ? entry.args
+             : Array.isArray(entry?.command) ? entry.command
+             : null;
   if (!args || !args.some(a => typeof a === "string" && a.includes("@playwright/mcp"))) return false;
 
   const i = args.indexOf("--cdp-endpoint");

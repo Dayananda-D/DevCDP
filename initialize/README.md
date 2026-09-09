@@ -10,8 +10,8 @@ say which to reach for, in what order, or what the traps are. That is what these
 | `<client-id>.md` | Optional override for one client, used instead of `AGENTS.md`. |
 
 Client ids are the `id` fields in `TARGETS` in `initialize_MCP.js`: `claude-code`,
-`claude-desktop`, `cursor`, `windsurf`, `vscode`, `zed`. To give Cursor its own
-wording, add `initialize/cursor.md`; everything else keeps using `AGENTS.md`.
+`claude-desktop`, `cursor`, `windsurf`, `vscode`, `zed`, `opencode`. To give Cursor its
+own wording, add `initialize/cursor.md`; everything else keeps using `AGENTS.md`.
 
 **Edit these freely.** They are plain markdown, read at install time — nothing is
 compiled in, so a change takes effect the next time anyone runs the installer. Team
@@ -37,6 +37,7 @@ Where it goes depends on what the client actually reads:
 |---|---|
 | Claude Code | `~/.claude/CLAUDE.md` — written for you |
 | Windsurf | `~/.codeium/windsurf/memories/global_rules.md` — written for you |
+| opencode | `~/.config/opencode/AGENTS.md` — written for you |
 | Cursor, Zed | `AGENTS.md` in each project — the installer prints the path to copy |
 | VS Code | `.github/copilot-instructions.md` in each project — path printed |
 | Claude Desktop | no instruction-file mechanism; nothing is written |

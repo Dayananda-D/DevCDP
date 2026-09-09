@@ -300,7 +300,7 @@ await check("re-running the installer is idempotent", () => {
 });
 
 await check("the manual snippet is valid JSON for every shape", () => {
-  for (const shape of ["mcpServers", "contextServers", "vscode"]) {
+  for (const shape of ["mcpServers", "contextServers", "vscode", "opencode"]) {
     const spec = entriesFor(shape, { playwrightVersion: "1.0.0", includeAutomation: false });
     const snippet = snippetFor(spec);
     const parsed = JSON.parse(snippet);
@@ -375,9 +375,10 @@ await check("the automation server is never pointed at DevCDP's own browser", ()
   // This is the whole reason two sessions appeared to share one tab: the installer
   // attached the automation server to port 9222, where it took whichever tab was
   // active, knowing nothing about DevCDP's claims. It must launch its own browser.
-  for (const shape of ["mcpServers", "contextServers", "vscode"]) {
+  for (const shape of ["mcpServers", "contextServers", "vscode", "opencode"]) {
     const spec = entriesFor(shape, { playwrightVersion: "1.2.3", includeAutomation: true });
-    const args = spec.automation.args.join(" ");
+    // opencode flattens command and args into one array, so read whichever it has.
+    const args = (spec.automation.args || spec.automation.command).join(" ");
     assert.equal(args.includes("--cdp-endpoint"), false,
       `${shape}: automation must not attach to the debugging port — got ${args}`);
     assert.equal(args.includes("9222"), false, `${shape}: must not reference DevCDP's port`);
@@ -523,6 +524,87 @@ await check("guidance goes to a real file for user-scoped clients, and is flagge
     const g = guidanceTargetFor(t.id);
     assert.ok(["user", "project", "none"].includes(g.scope), `${t.id} has no guidance decision`);
   }
+});
+
+// ── opencode ─────────────────────────────────────────────────────────────────
+await check("the opencode entry matches opencode's own schema", () => {
+  // Checked against the schema the installed binary reports ($schema =
+  // https://opencode.ai/config.json): key "mcp", type and command required, command an
+  // array of strings — and additionalProperties FALSE, which is the part that bites. An
+  // "args" or "env" key is not politely ignored there; it invalidates the config and
+  // every server in it stops loading.
+  const spec = entriesFor("opencode", { playwrightVersion: "1.2.3", includeAutomation: true });
+  assert.equal(spec.key, "mcp", "opencode reads MCP servers from the top-level 'mcp' key");
+
+  for (const [which, entry] of [["devcdp", spec.devcdp], ["automation", spec.automation]]) {
+    assert.equal(entry.type, "local", which + ": type is required and must be 'local'");
+    assert.ok(Array.isArray(entry.command), which + ": command must be an array, not a string");
+    assert.ok(entry.command.every(s => typeof s === "string"), which + ": command must be all strings");
+    assert.deepEqual(Object.keys(entry).sort(), ["command", "enabled", "type"],
+      which + ": no key outside the schema — additionalProperties is false");
+  }
+
+  // The command and its arguments must arrive as one flattened array.
+  assert.equal(spec.devcdp.command[0], "node");
+  assert.ok(spec.devcdp.command[1].endsWith("index.js"), "the server path must be the second element");
+  assert.ok(spec.automation.command.includes("@playwright/mcp@1.2.3"),
+    "the pinned automation package must survive flattening");
+});
+
+await check("an existing opencode.jsonc is written to, not shadowed by a new .json", () => {
+  // opencode reads either extension from the same directory. Defaulting to .json when a
+  // .jsonc is already in use would add a second config file beside the real one, and the
+  // entry would simply never load — a failure with nothing to see.
+  const oc = TARGETS.find(t => t.id === "opencode");
+  assert.ok(oc, "opencode must be a configurable target");
+  const ocPosix = oc.file.split(path.sep).join("/");
+  assert.ok(ocPosix.endsWith(".config/opencode/opencode.jsonc")
+    || ocPosix.endsWith(".config/opencode/opencode.json"),
+    "must target opencode's own config file, got " + oc.file);
+  if (fs.existsSync(path.join(os.homedir(), ".config", "opencode", "opencode.jsonc"))) {
+    assert.ok(oc.file.endsWith(".jsonc"), "an existing .jsonc must win over creating a .json");
+  }
+});
+
+await check("a commented opencode config is reported, never rewritten", () => {
+  // Comments are legal in .jsonc and this installer cannot preserve them, so the file
+  // must be left alone and the snippet printed — CFG-1, applied to a format that
+  // actively invites comments.
+  const file = path.join(ROOT, "opencode.jsonc");
+  fs.writeFileSync(file, [
+    "{",
+    "  // my notes",
+    '  "$schema": "https://opencode.ai/config.json"',
+    "}",
+  ].join(String.fromCharCode(10)), "utf8");
+  const read = readConfig({ file, hasFile: true });
+  assert.equal(read.ok, false, "a commented config must not be considered writable");
+  assert.match(read.reason, /comments/i, "the reason must say why");
+});
+
+await check("stale and mis-pointed entries are found inside a flattened command array", () => {
+  // isStaleEntry and stripDevCdpEndpoint both read `args`. opencode has no `args`, so
+  // without handling `command` an old opencode install would keep a duplicate DevCDP
+  // entry and a Playwright still nailed to port 9222, with nothing to show it.
+  const stale = { type: "local", command: ["node", path.join(process.cwd(), "index.js")] };
+  assert.equal(isStaleEntry("devcdp-old", stale), true, "a path inside command must count as stale");
+  assert.equal(isStaleEntry("devcdp", stale), false, "the canonical entry is never stale");
+  assert.equal(isStaleEntry("other", { type: "local", command: ["node", "/somewhere/else.js"] }), false,
+    "an unrelated server must be left alone");
+
+  const attached = { type: "local", command: ["npx", "@playwright/mcp", "--cdp-endpoint", "http://localhost:9222"] };
+  assert.equal(stripDevCdpEndpoint(attached), true, "the collision must be repaired in a command array too");
+  assert.deepEqual(attached.command, ["npx", "@playwright/mcp"], "only the endpoint pair may be removed");
+});
+
+await check("opencode gets guidance written where opencode actually reads it", () => {
+  const g = guidanceTargetFor("opencode");
+  assert.equal(g.scope, "user", "opencode has a global rules file, so this need not be per project");
+  // AGENTS.md beside the config. opencode also falls back to ~/.claude/CLAUDE.md for
+  // Claude Code compatibility, but AGENTS.md takes precedence — so writing the fallback
+  // would be silently overridden by any AGENTS.md that appeared later.
+  assert.ok(g.file.split(path.sep).join("/").endsWith(".config/opencode/AGENTS.md"), "got " + g.file);
+  assert.ok(loadGuidance("opencode").ok, "a template must resolve for it");
 });
 
 try { fs.rmSync(ROOT, { recursive: true, force: true }); } catch (_) {}
