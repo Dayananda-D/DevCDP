@@ -11,6 +11,7 @@ import { spawn } from "child_process";
 import fs   from "fs";
 import path from "path";
 import net  from "net";
+import crypto from "crypto";
 import CDP  from "chrome-remote-interface";
 import os   from "os";
 import { CODES, fail } from "../core/errors.js";
@@ -42,23 +43,62 @@ const CANDIDATES = {
  * Identified by manifest name: Chrome ships several bundled extensions of its own, so
  * counting `chrome-extension://` targets would say yes for any browser at all.
  */
-export async function verifyExtension(host, port, expectedName = "DevCDP Session Marker", timeoutMs = 5000) {
-  // Poll, do not glance. A manifest-v3 service worker is registered a moment after the
-  // debugging port opens, so checking once immediately reported "not loaded" for a
-  // browser that was loading it perfectly well — and then blamed branded Chrome for it.
+/**
+ * The id Chrome will give an unpacked extension loaded from `dir`.
+ *
+ * Deterministic, and worth having because the alternative was asking the extension its
+ * own name — which means attaching to its service worker and evaluating inside it. A
+ * manifest-v3 worker suspends when idle, so that question intermittently cannot be
+ * answered at all, and "no answer" was being reported as "not loaded" and blamed on
+ * branded Chrome. The id lets us recognise our extension from the target list alone.
+ *
+ * Chrome hashes the absolute path and maps each hex digit onto a-p. On Windows the
+ * path is hashed as UTF-16, everywhere else as its UTF-8 bytes — verified against a
+ * real browser rather than assumed.
+ */
+export function unpackedExtensionId(dir) {
+  if (!dir) return null;
+  const normalised = process.platform === "win32" ? path.win32.normalize(dir) : path.posix.normalize(dir);
+  const bytes = process.platform === "win32" ? Buffer.from(normalised, "utf16le") : Buffer.from(normalised, "utf8");
+  const hex = crypto.createHash("sha256").update(bytes).digest("hex").slice(0, 32);
+  return [...hex].map(ch => String.fromCharCode(97 + parseInt(ch, 16))).join("");
+}
+
+/**
+ * Did the companion extension actually load?
+ *
+ * 8s rather than 5s, because a service worker registers quickly on an idle machine and
+ * not always quickly on a busy one, and the cost of guessing wrong is asymmetric:
+ * success returns the instant it is seen, so a longer deadline costs nothing when the
+ * extension is there.
+ */
+export async function verifyExtension(host, port, { expectedName = "DevCDP Session Marker", extensionDir = null, timeoutMs = 8000 } = {}) {
+  const expectedId = unpackedExtensionId(extensionDir);
   const deadline = Date.now() + timeoutMs;
   while (true) {
-    const found = await extensionTargetNamed(host, port, expectedName);
+    const found = await extensionTarget(host, port, expectedName, expectedId);
     if (found.loaded || Date.now() >= deadline) return found;
     await new Promise(r => setTimeout(r, 400));
   }
 }
 
-async function extensionTargetNamed(host, port, expectedName) {
+async function extensionTarget(host, port, expectedName, expectedId) {
   let targets = [];
   try { targets = await CDP.List({ host, port }); } catch (_) { return { loaded: false }; }
 
-  for (const t of targets.filter(t => /^chrome-extension:\/\//.test(t.url || ""))) {
+  const extensionTargets = targets.filter(t => /^chrome-extension:\/\//.test(t.url || ""));
+
+  // The cheap, reliable answer first: is one of these targets ours? Identifying by id
+  // rather than by counting keeps the original guarantee — Chrome ships bundled
+  // extensions of its own, so any chrome-extension:// target would say yes for any
+  // browser at all — while needing nothing from the extension itself.
+  if (expectedId) {
+    const mine = extensionTargets.find(t => t.url.startsWith(`chrome-extension://${expectedId}/`));
+    if (mine) return { loaded: true, id: expectedId, identifiedBy: "path-derived id" };
+  }
+
+  // Fall back to asking it, for a packed install or a path we derived wrongly.
+  for (const t of extensionTargets) {
     let c;
     try {
       c = await CDP({ host, port, target: t.id });
@@ -69,7 +109,7 @@ async function extensionTargetNamed(host, port, expectedName) {
       });
       let name = null, id = null;
       try { ({ n: name, i: id } = JSON.parse(result?.value || "{}")); } catch (_) {}
-      if (name === expectedName) return { loaded: true, id };
+      if (name === expectedName) return { loaded: true, id, identifiedBy: "manifest name" };
     } catch (_) {
     } finally { try { if (c) await c.close(); } catch (_) {} }
   }
@@ -224,7 +264,7 @@ export async function launchChrome({ port, cfg, url = "about:blank", host = "loc
   }
 
   const requested = args.some(a => a.startsWith("--load-extension"));
-  const extension = requested ? await verifyExtension(host, port) : { loaded: false };
+  const extension = requested ? await verifyExtension(host, port, { extensionDir: cfg.extensionDir }) : { loaded: false };
 
   return {
     port, profile: profile || "(your default Chrome profile)", profileMode: mode,

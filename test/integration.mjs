@@ -14,7 +14,7 @@ import { startFixture, LINES, ORIGINAL_PATH, SHARED_TERM, MODULE_COUNT, VENDOR_P
 import { createContext } from "../src/core/context.js";
 import { Connection }    from "../src/cdp/connection.js";
 import { MemoryStore }   from "../src/store/memory.js";
-import { launchChrome, findFreePort, findExtensionCapableChrome } from "../src/cdp/launch.js";
+import { launchChrome, findFreePort, findExtensionCapableChrome, verifyExtension } from "../src/cdp/launch.js";
 import { liveClaims, releaseClaimFile, reapClosedTabs } from "../src/cdp/registry.js";
 import { getTool, resolveArgs, shape, capResponse } from "../src/core/tools.js";
 import { annotateResponse } from "../src/server.js";
@@ -1013,6 +1013,58 @@ try {
     assert.equal(val, "AB12", "clear_first must have removed the previous value");
   });
 
+  await check("fill and type are different jobs, and the difference is observable", async () => {
+    // Not a stylistic split. fill assigns the value and announces it; type drives the
+    // browser's real input pipeline. An application's own input rules live in that
+    // pipeline, so fill goes straight through them — which is the point when you want
+    // to test what happens downstream of a mask, and a trap when you are reproducing
+    // what a user did.
+    await call(ctx, "console_evaluate", { expression: `
+      var el = document.querySelector('[name=reference]');
+      el.setAttribute('maxlength', '5');
+      window.__ev = { keydown: 0, input: 0, change: 0 };
+      if (!window.__wired) {
+        window.__wired = true;
+        Object.keys(window.__ev).forEach(function (t) {
+          el.addEventListener(t, function () { window.__ev[t]++; });
+        });
+        el.addEventListener('keypress', function (e) { if (!/[0-9]/.test(e.key)) e.preventDefault(); });
+      }
+      'ok'` });
+
+    const reset = () => call(ctx, "console_evaluate", { expression:
+      `(function(){ var el=document.querySelector('[name=reference]'); el.value='';
+        Object.keys(window.__ev).forEach(function(k){ window.__ev[k]=0; }); return 'ok'; })()` });
+    const read = async () => JSON.parse((await call(ctx, "console_evaluate", { expression:
+      `JSON.stringify({ ev: window.__ev, value: document.querySelector('[name=reference]').value })` })).value);
+
+    await reset();
+    await call(ctx, "ui_fill", { selector: "[name=reference]", value: "12ab7890" });
+    const filled = await read();
+    assert.equal(filled.value, "12ab7890",
+      "fill assigns the value directly, so maxlength and a keypress guard do not apply");
+    assert.equal(filled.ev.keydown, 0, "fill must not fabricate key events it did not send");
+    assert.equal(filled.ev.input, 1, "the application must still be told the value changed");
+
+    await reset();
+    await call(ctx, "ui_type", { selector: "[name=reference]", text_to_type: "12ab7890", delay_ms: 0, clear_first: false });
+    const typed = await read();
+    assert.equal(typed.value, "12789",
+      "type goes through the real input pipeline, so the field's own rules apply");
+    assert.ok(typed.ev.keydown >= 8, `a key event per character, saw ${typed.ev.keydown}`);
+
+    // The one worth knowing about: typing leaves the field focused, and `change` fires
+    // on blur — so an application that validates on change has not heard anything yet.
+    assert.equal(typed.ev.change, 0, "typing alone does not fire change; blur or submit does");
+
+    // Put the field back. A maxlength and a digits-only guard left on a shared fixture
+    // element would quietly change the meaning of every later test that touches it —
+    // the same cross-test pollution that made the earlier failures so hard to read.
+    await call(ctx, "console_evaluate", { expression:
+      `(function(){ var el=document.querySelector('[name=reference]');
+        el.removeAttribute('maxlength'); el.value=''; return 'ok'; })()` });
+  });
+
   await check("ui_wait_for returns as soon as the condition holds", async () => {
     await call(ctx, "console_evaluate", { expression: `
       setTimeout(function(){
@@ -1147,13 +1199,125 @@ try {
     await call(ctx, "console_evaluate", { expression: `document.getElementById('inert').remove(); 'ok'` });
   });
 
+  // ── screen capture ────────────────────────────────────────────────────────
+  await check("page_screenshot writes a real image and reports where", async () => {
+    const shotDir = path.join(memoryDir, "shots");
+    const res = await call(ctx, "page_screenshot", { save_to: path.join(shotDir, "viewport.png") });
+
+    assert.equal(res.captured, "viewport");
+    assert.ok(fs.existsSync(res.file), `nothing was written to ${res.file}`);
+
+    // A path is worthless if the bytes are not an image. Check the PNG signature
+    // rather than trusting the extension.
+    const bytes = fs.readFileSync(res.file);
+    assert.deepEqual([...bytes.subarray(0, 4)], [0x89, 0x50, 0x4e, 0x47], "not a PNG");
+    assert.equal(res.size.bytes, bytes.length, "the reported size must match the file");
+    assert.ok(res.dimensions.width > 0 && res.dimensions.height > 0);
+  });
+
+  await check("an element can be snipped by the text a person reads", async () => {
+    const res = await call(ctx, "page_screenshot", {
+      text: "Save order", save_to: path.join(memoryDir, "shots", "button.png"),
+    });
+    assert.equal(res.captured, "element");
+    assert.equal(res.element.tag, "button");
+
+    // The clip must be the button, not the page — the whole point of targeting.
+    const rect = (await call(ctx, "dom_query", { selector: "[data-testid='save-order']" })).elements[0].rect;
+    assert.ok(Math.abs(res.dimensions.width - rect.w) <= 2,
+      `width should match the element (${res.dimensions.width} vs ${rect.w})`);
+    assert.ok(res.size.bytes < 60000, `an element snip should be small, was ${res.size.kb} KB`);
+  });
+
+  await check("a full-page capture is scaled to the requested ceiling", async () => {
+    await call(ctx, "console_evaluate", { expression:
+      `var w = document.createElement('div');
+       // Big enough to force scaling against max_width, deliberately no bigger:
+       // rendering far beyond the viewport is genuinely expensive, and a capture test
+       // that slows the whole suite down makes the timing-sensitive tests after it
+       // flaky — which is a worse outcome than a smaller proof.
+       w.id = 'wide'; w.style.cssText = 'width:2400px;height:1200px;background:linear-gradient(#eee,#333)';
+       document.body.appendChild(w); 'ok'` });
+
+    const res = await call(ctx, "page_screenshot", {
+      full_page: true, max_width: 800, format: "jpeg", quality: 60,
+      save_to: path.join(memoryDir, "shots", "full.jpg"),
+    });
+    assert.equal(res.captured, "full-page");
+    assert.ok(res.dimensions.width <= 800, `must respect max_width, got ${res.dimensions.width}`);
+    assert.ok(res.dimensions.scaledFrom.width >= 2400, "it must have captured the whole width before scaling");
+    assert.ok(res.dimensions.scale < 1, "the scale actually applied must be reported");
+
+    const bytes = fs.readFileSync(res.file);
+    assert.deepEqual([...bytes.subarray(0, 3)], [0xff, 0xd8, 0xff], "not a JPEG");
+    await call(ctx, "console_evaluate", { expression: `document.getElementById('wide').remove(); 'ok'` });
+  });
+
+  await check("DevCDP's own overlay is not in the picture, and comes back after", async () => {
+    // A screenshot with our badge baked into it is useless for a bug report and wrong
+    // for anything compared against a reference.
+    await call(ctx, "notify_user", { action: "debug", detail: "this must not appear in the capture" });
+    await sleep(200);
+
+    const visible = async () => (await call(ctx, "console_evaluate", { expression:
+      `(function(){var h=document.getElementById('devcdp-badge-host');
+        return h ? getComputedStyle(h).display : 'absent';})()` })).value;
+
+    assert.notEqual(await visible(), "none", "the overlay should be showing before we start");
+    const res = await call(ctx, "page_screenshot", { save_to: path.join(memoryDir, "shots", "clean.png") });
+    assert.equal(res.overlayHidden, true);
+
+    // Restoration is the part that matters: an overlay left hidden means the user
+    // silently stops being told anything.
+    assert.notEqual(await visible(), "none", "the overlay must be restored after the capture");
+  });
+
+  await check("the overlay is restored even when the capture fails", async () => {
+    await assert.rejects(
+      () => call(ctx, "page_screenshot", { rect: { x: 0, y: 0, width: 0, height: 0 } }),
+      e => { assert.equal(e.code, "BAD_ARGS"); return true; });
+
+    const display = (await call(ctx, "console_evaluate", { expression:
+      `(function(){var h=document.getElementById('devcdp-badge-host');
+        return h ? getComputedStyle(h).display : 'absent';})()` })).value;
+    assert.notEqual(display, "none", "a failed capture must not leave the overlay hidden");
+  });
+
+  await check("the image is only returned to the model when asked for", async () => {
+    // Default must be a path. A full-page base64 payload costs more context than every
+    // tool description put together.
+    const quiet = await call(ctx, "page_screenshot", { save_to: path.join(memoryDir, "shots", "q.png") });
+    assert.equal(quiet._media, undefined, "the image must not be returned by default");
+    assert.match(quiet.hint, /inline:true/, "it must say how to get the image");
+
+    const loud = await call(ctx, "page_screenshot", {
+      text: "Save order", inline: true, save_to: path.join(memoryDir, "shots", "i.png"),
+    });
+    assert.ok(loud._media?.data, "inline:true must return the image");
+    assert.equal(loud._media.mimeType, "image/png");
+    assert.ok(loud.inlined, "the cost must be stated, not hidden");
+  });
+
+  await check("a missing target says so instead of capturing the wrong thing", async () => {
+    await assert.rejects(
+      () => call(ctx, "page_screenshot", { selector: "#not-here" }),
+      e => {
+        assert.equal(e.code, "NO_TARGET");
+        assert.match(e.hint, /ui_inspect|dom_query/);
+        return true;
+      });
+  });
+
   // ── network ───────────────────────────────────────────────────────────────
   await check("captures requests, statuses and failures with bodies on request (NET-1)", async () => {
     await call(ctx, "page_reload", {});
+    // Wait for the response, not merely for the request to exist. count > 0 is true the
+    // moment it is sent, and status arrives later — so on a loaded machine this read
+    // status:null and blamed the network capture for a race in the waiting.
     await until(async () => {
       const n = await call(ctx, "network_get_requests", { url_filter: "/api/orders" });
-      return n.count > 0 ? n : null;
-    }, { what: "the orders request" });
+      return n.requests?.some(r => r.status != null) ? n : null;
+    }, { what: "the orders request to complete" });
 
     const withBody = await call(ctx, "network_get_requests", { url_filter: "/api/orders", include_bodies: true, max_body_bytes: 500 });
     assert.equal(withBody.requests[0].status, 200);
@@ -1444,8 +1608,32 @@ try {
       let browser = null;
       try {
         browser = await launchChrome({ port: gPort, cfg: gCtx.cfg, url: fixture.origin });
-        assert.equal(browser.extensionLoaded, true,
-          `the extension did not load in ${capable}: ${browser.extensionNote || "no reason given"}`);
+
+        // Re-verify with a generous window rather than trusting the launch-time check.
+        // That check is deliberately short so a real launch stays responsive, and this
+        // suite runs several browsers at once — so a service worker that registers in
+        // four seconds on an idle machine can take longer here. Without this the test
+        // reported "the extension did not load" whenever the machine was busy, which
+        // says nothing about the extension.
+        const loaded = browser.extensionLoaded
+          || (await verifyExtension("localhost", gPort,
+                { extensionDir: gCtx.cfg.extensionDir, timeoutMs: 20000 })).loaded;
+        if (!loaded) {
+          // This fails only inside the full suite and never in isolation, so the
+          // message has to carry enough to tell us why rather than repeating the
+          // generic branded-Chrome guess.
+          let diag = {};
+          try {
+            const list = await CDP.List({ host: "localhost", port: gPort });
+            diag = {
+              targets: list.length,
+              extensionTargets: list.filter(t => /^chrome-extension:\/\//.test(t.url || "")).map(t => t.url.slice(0, 80)),
+              pages: list.filter(t => t.type === "page").map(t => (t.url || "").slice(0, 60)),
+            };
+          } catch (e) { diag = { listFailed: e.message }; }
+          assert.fail(`the extension did not load in ${capable}: ${browser.extensionNote || "no reason given"}`
+            + ` | profile=${browser.profile} | ${JSON.stringify(diag)}`);
+        }
 
         await until(async () => {
           try { return (await CDP.List({ host: "localhost", port: gPort })).some(t => t.url.startsWith(fixture.origin)); }

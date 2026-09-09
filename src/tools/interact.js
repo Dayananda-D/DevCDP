@@ -520,9 +520,12 @@ const SET_VALUE_BODY = `
 defineTool({
   name: "ui_fill",
   description:
-    "Set the value of a text field, textarea or contenteditable in one step, and fire the input and change events the "
-    + "application listens for. Fast, because it does not type character by character — use ui_type instead when the "
-    + "field reacts to each keystroke, such as a typeahead or an autocomplete.",
+    "Set the value of a text field, textarea or contenteditable in one step: assign it and fire input and change. Fast, "
+    + "and it does NOT go through the browser's key-event pipeline — no keydown, no keypress — so the field's own input "
+    + "rules never run. maxlength, digits-only keypress guards and input masks are all bypassed, which is exactly what "
+    + "you want to put a value past a mask and test what happens downstream, and exactly what you do not want when "
+    + "reproducing what a user did: it can leave the field in a state the UI itself would not allow. Use ui_type for "
+    + "that, and for anything reacting per keystroke such as a typeahead.",
   args: {
     ...TARGET_ARGS,
     value: { type: "string", description: "The text to put in the field. Pass an empty string to clear it.", required: true },
@@ -562,9 +565,12 @@ defineTool({
 defineTool({
   name: "ui_type",
   description:
-    "Type into a field one character at a time, with real key events for each. Slower than ui_fill and necessary "
-    + "exactly when the field reacts per keystroke — search-as-you-type, autocomplete, input masks, and fields that "
-    + "reformat while you type. If ui_fill left the field looking right but the application unaware, use this.",
+    "Type into a field one character at a time with real key events, through the same input pipeline a person's "
+    + "keyboard uses — so the field's own rules apply: maxlength truncates, a keypress guard rejects what it rejects, "
+    + "and a mask reformats as it goes. This is the tool for reproducing user behaviour, and for anything reacting per "
+    + "keystroke: search-as-you-type, autocomplete, validation-on-key. Slower than ui_fill by design. Note that typing "
+    + "leaves the field focused and `change` fires on blur, so pass submit:true (or press Tab) when the application "
+    + "validates on change.",
   args: {
     ...TARGET_ARGS,
     text_to_type: { type: "string", description: "Characters to type.", required: true },

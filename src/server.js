@@ -54,6 +54,7 @@ import "./tools/console.js";
 import "./tools/network.js";
 import "./tools/dom.js";
 import "./tools/interact.js";
+import "./tools/capture.js";
 import "./tools/sources.js";
 import "./tools/debugger.js";
 import "./tools/session.js";
@@ -120,12 +121,23 @@ export function createServer(overrides = {}) {
         } else throw err;
       }
 
+      // Binary a tool wants the model to actually see, lifted out before shaping.
+      //
+      // It cannot travel through the JSON payload: capResponse would treat a megabyte
+      // of base64 as the heaviest string in the tree and truncate it to 200 characters,
+      // producing a corrupt image and a cheerful _truncated note. MCP has a content
+      // type for exactly this, so it goes alongside the text rather than inside it.
+      const media = result && typeof result === "object" ? result._media : null;
+      if (media) delete result._media;
+
       const payload = capResponse(shape(tool, result, args), ctx.cfg.maxResponseBytes, name);
 
       annotateResponse(payload, ctx, { reconnect, retried });
 
       log.debug("tool", `${name} ok`, { ms: Date.now() - started });
-      return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }] };
+      const content = [{ type: "text", text: JSON.stringify(payload, null, 2) }];
+      if (media?.data) content.push({ type: "image", data: media.data, mimeType: media.mimeType || "image/png" });
+      return { content };
 
     } catch (err) {
       const result = toErrorResult(err);

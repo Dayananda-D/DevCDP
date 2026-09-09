@@ -2,7 +2,7 @@
 
 **Generated from the tool registry — do not edit by hand.** Run `npm run docs` after changing a tool.
 
-73 tools. Every one is callable by name over MCP; the arguments below are exactly what the
+74 tools. Every one is callable by name over MCP; the arguments below are exactly what the
 server validates, with the defaults it applies.
 
 ## Contents
@@ -316,7 +316,7 @@ Arguments:
 
 ### `ui_fill`
 
-Set the value of a text field, textarea or contenteditable in one step, and fire the input and change events the application listens for. Fast, because it does not type character by character — use ui_type instead when the field reacts to each keystroke, such as a typeahead or an autocomplete.
+Set the value of a text field, textarea or contenteditable in one step: assign it and fire input and change. Fast, and it does NOT go through the browser's key-event pipeline — no keydown, no keypress — so the field's own input rules never run. maxlength, digits-only keypress guards and input masks are all bypassed, which is exactly what you want to put a value past a mask and test what happens downstream, and exactly what you do not want when reproducing what a user did: it can leave the field in a state the UI itself would not allow. Use ui_type for that, and for anything reacting per keystroke such as a typeahead.
 
 Arguments:
 
@@ -333,7 +333,7 @@ Arguments:
 
 ### `ui_type`
 
-Type into a field one character at a time, with real key events for each. Slower than ui_fill and necessary exactly when the field reacts per keystroke — search-as-you-type, autocomplete, input masks, and fields that reformat while you type. If ui_fill left the field looking right but the application unaware, use this.
+Type into a field one character at a time with real key events, through the same input pipeline a person's keyboard uses — so the field's own rules apply: maxlength truncates, a keypress guard rejects what it rejects, and a mask reformats as it goes. This is the tool for reproducing user behaviour, and for anything reacting per keystroke: search-as-you-type, autocomplete, validation-on-key. Slower than ui_fill by design. Note that typing leaves the field focused and `change` fires on blur, so pass submit:true (or press Tab) when the application validates on change.
 
 Arguments:
 
@@ -479,6 +479,25 @@ Arguments:
   - `timeout_ms` · *number* · default `5000` — How long to wait for the element to become actionable before giving up.
   - `state` · *string* · default `"visible"` · one of `visible`, `hidden`, `enabled`, `detached`, `stable` — What to wait for: 'visible' (default), 'hidden', 'enabled', 'detached', or 'stable' (present and no longer moving).
   - `contains_text` · *string* — Also require the element to contain this text.
+
+### `page_screenshot`
+
+Capture what is on screen: the viewport, the whole scrollable page, one element, or an explicit rectangle. Name the element the same way as the ui_* tools — by CSS selector, by the text a person reads, or by test id — so snipping a region does not require working out coordinates. DevCDP's own badge and messages are hidden first, so the image shows the application and nothing else. Written to a file and returned as a path; pass inline:true when you need to look at it yourself, which costs a great deal of context.
+
+Arguments:
+
+  - `selector` · *string* — CSS selector of the element to capture. Descends into open shadow roots.
+  - `text` · *string* — Visible text of the element to capture.
+  - `testid` · *string* — Test attribute value of the element to capture.
+  - `nth` · *number* · default `0` — Which match to use when several qualify, 0-based.
+  - `rect` · *object* — Explicit page-coordinate region { x, y, width, height }. Overrides any element target.
+  - `full_page` · *boolean* · default `false` — Capture the whole scrollable page, not just the viewport. Ignored when a target or rect is given.
+  - `format` · *string* · default `"png"` · one of `png`, `jpeg`, `webp` — Image format. jpeg is far smaller for photographic content; png is exact.
+  - `quality` · *number* · default `80` — 1-100, for jpeg and webp only.
+  - `max_width` · *number* · default `1600` — Scale the capture down to at most this many pixels wide. Keeps a full-page shot to a sane size.
+  - `hide_overlay` · *boolean* · default `true` — Hide DevCDP's badge and messages for the capture. Turn off only when the overlay itself is what you are looking at.
+  - `save_to` · *string* — Absolute path to write to. Defaults to a timestamped file in the screenshotDir setting.
+  - `inline` · *boolean* · default `false` — Also return the image itself so you can see it. Expensive — a large capture can cost more context than every tool description combined.
 
 ## Sources
 

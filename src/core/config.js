@@ -158,6 +158,12 @@ const DEFAULTS = {
 
   // ── storage ──
   memoryDir: path.join(os.homedir(), ".devcdp"),
+  // Screenshots are written to disk and referenced by path by default, rather than
+  // returned inline. A full-page capture of a real application is comfortably over a
+  // megabyte of base64 — around a quarter of a million tokens — so returning one to
+  // the model by default would cost more than the entire tool listing, every time.
+  // Ask for `inline` when the model genuinely needs to look at it.
+  screenshotDir: path.join(os.homedir(), ".devcdp", "screenshots"),
   sharedMemoryDir: null,           // MEM-1 — set to a network/repo path to pool team fixes
 
   // ── liveness ──
