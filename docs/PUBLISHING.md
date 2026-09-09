@@ -8,7 +8,8 @@ consumer directories need a hosted server first.
 | Where | Reaches | Transport accepted | Status |
 |---|---|---|---|
 | npm | everything below pulls from here | n/a | ready to publish |
-| Official MCP Registry | GitHub MCP Registry, VS Code, Copilot CLI, Cursor and other client pickers | stdio, remote | `server.json` ready |
+| Official MCP Registry | source of truth other registries and clients read | stdio, remote | published, 5.0.1 |
+| GitHub MCP Registry (github.com/mcp; the VS Code and Copilot CLI pickers) | VS Code, Copilot | curated subset of the official registry | onboarding request needed |
 | Claude Code plugin marketplace | Claude Code (`/plugin install`) | stdio | `plugins/devcdp` ready |
 | Community directories (Smithery, Glama, PulseMCP, mcp.so) | discovery | stdio | index automatically from GitHub / the registry |
 | Claude Connectors Directory (claude.ai, desktop, mobile) | Claude consumer apps | Streamable HTTP only | needs a hosted relay first |
@@ -73,8 +74,18 @@ curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.Day
 ```
 
 The registry checks that the npm package's `mcpName` matches `server.json`'s `name`, so
-step 1 must be done first. Once listed, the server appears in the GitHub MCP Registry,
-which VS Code's "Browse MCP Servers" picker and Copilot CLI's `/mcp search` read from.
+step 1 must be done first. The namespace is case-sensitive and must match the GitHub
+login exactly (`io.github.Dayananda-D/...`).
+
+### GitHub MCP Registry (what VS Code and Copilot show)
+
+VS Code's "Browse MCP Servers" and Copilot CLI's `/mcp search` read
+https://github.com/mcp, which is a **curated** subset of the official registry (a few
+hundred entries against thousands). GitHub syncs versions from the official registry but
+onboards new servers by hand. To request it, post in the onboarding thread
+https://github.com/github/github-mcp-server/discussions/1257 with the registry name
+`io.github.Dayananda-D/devcdp`, or email partnerships@github.com. Until then, the README
+carries a one-click VS Code install link and the *MCP: Add Server → NPM Package* path.
 
 **Automated:** after the one-time setup above, `git tag v5.0.1 && git push --tags`
 runs both publishes from GitHub Actions.

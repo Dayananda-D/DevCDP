@@ -71,8 +71,10 @@ On native Windows some clients need `"command": "cmd", "args": ["/c", "npx", "-y
 /plugin install devcdp@devcdp
 ```
 
-**VS Code, Copilot CLI, Cursor:** search for `devcdp` in the client's MCP server picker;
-they read from the [official MCP Registry](https://registry.modelcontextprotocol.io/).
+**VS Code:** [Install in VS Code](https://vscode.dev/redirect/mcp/install?name=devcdp&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22devcdp%22%5D%7D), or run *MCP: Add Server*, choose *NPM Package*,
+and enter `devcdp`. **Copilot CLI:** `/mcp add` with command `npx -y devcdp`. DevCDP is in
+the [official MCP Registry](https://registry.modelcontextprotocol.io/?q=devcdp); the picker
+inside VS Code shows GitHub's curated subset of that registry, which is a separate listing.
 
 **From source**, with the setup wizard that also writes usage guidance into your
 assistant's instructions file: see Setup, next.
