@@ -1,0 +1,15 @@
+{
+  "name": "devcdp",
+  "version": "5.0.1",
+  "description": "Real Chrome DevTools access for Gemini CLI: console, network, DOM, source maps, breakpoints and live variables.",
+  "mcpServers": {
+    "devcdp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "devcdp@5.0.1"
+      ]
+    }
+  },
+  "contextFileName": "GEMINI.md"
+}

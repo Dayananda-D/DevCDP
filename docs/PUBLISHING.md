@@ -11,7 +11,11 @@ consumer directories need a hosted server first.
 | Official MCP Registry | source of truth other registries and clients read | stdio, remote | published, 5.0.1 |
 | GitHub MCP Registry (github.com/mcp; the VS Code and Copilot CLI pickers) | VS Code, Copilot | curated subset of the official registry | onboarding request needed |
 | Claude Code plugin marketplace | Claude Code (`/plugin install`) | stdio | `plugins/devcdp` ready |
-| Community directories (Smithery, Glama, PulseMCP, mcp.so) | discovery | stdio | index automatically from GitHub / the registry |
+| Gemini CLI extension gallery | Gemini CLI | stdio | automatic: `gemini-extension.json` + repo topic `gemini-cli-extension`, daily crawl |
+| Codex plugin marketplace | Codex CLI, desktop, VS Code | stdio | `.agents/plugins/marketplace.json` ready; official directory not self-serve yet |
+| Cursor | Cursor | stdio | one-click deeplink in README; cursor.directory form |
+| opencode | opencode | stdio | no registry; README snippet, installer writes its config |
+| Community directories (Smithery, Glama, PulseMCP, mcp.so, awesome-mcp-servers) | discovery | stdio | forms / PR, see section 4 |
 | Claude Connectors Directory (claude.ai, desktop, mobile) | Claude consumer apps | Streamable HTTP only | needs a hosted relay first |
 | ChatGPT app directory | ChatGPT | Streamable HTTP only | needs a hosted relay first |
 
@@ -124,7 +128,38 @@ tool's PATH and blocks claude.ai org distribution, which is why the launcher liv
 
 Also list the marketplace on https://claudecodemarketplace.com (community index).
 
+## 3b. Gemini CLI
+
+Automatic. `gemini-extension.json` sits at the repo root, pins the npm version, and names
+`GEMINI.md` (generated from `initialize/AGENTS.md` by `npm run docs`) as the context
+file. The repo carries the GitHub topic `gemini-cli-extension`; the gallery at
+https://geminicli.com/extensions crawls tagged public repos daily. Users install with
+`gemini extensions install https://github.com/Dayananda-D/DevCDP`; updates follow HEAD.
+
+## 3c. Codex
+
+`plugins/devcdp` doubles as an Agent Plugins portable package: `plugin.json` and
+`mcp.json` at the plugin root (Codex) next to `.claude-plugin/plugin.json` and
+`.mcp.json` (Claude Code). `.agents/plugins/marketplace.json` makes the repo a Codex
+marketplace: `codex plugin marketplace add Dayananda-D/DevCDP`. Self-serve publishing to
+the official Codex plugin directory was not open as of mid-2026; when it is, the portal is
+https://developers.openai.com/plugins/deploy/submission.
+
+## 3d. Cursor and opencode
+
+Cursor: the README carries a one-click deeplink (base64 of the server JSON); submit the
+listing at https://cursor.directory/plugins/new (the `cursor/mcp-servers` GitHub list is
+deprecated). opencode has no registry; `opencode mcp add` or the `opencode.json` snippet
+in the README, and the installer writes its config directly.
+
 ## 4. Community directories
+
+**awesome-mcp-servers** (https://github.com/punkpeye/awesome-mcp-servers): fork, add this
+line to *Browser Automation* in alphabetical order, open a PR:
+
+```
+- [Dayananda-D/DevCDP](https://github.com/Dayananda-D/DevCDP) 📇 🏠 🍎 🪟 🐧 - Real Chrome DevTools access for AI assistants: console, network, DOM, source maps, breakpoints that report whether they bound, stepping and live variable values, plus trusted page interaction that reports what each action caused. 74 tools, every one annotated read-only/destructive; multi-session tab isolation.
+```
 
 - **Smithery**: https://smithery.ai — sign in with GitHub, add the repo.
 - **Glama**: https://glama.ai/mcp/servers — claim the auto-indexed listing.

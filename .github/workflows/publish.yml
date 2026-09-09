@@ -27,7 +27,7 @@ jobs:
       - name: tag must match package.json, server.json and the plugin manifest
         run: |
           TAG="${GITHUB_REF_NAME#v}"
-          for f in package.json server.json plugins/devcdp/.claude-plugin/plugin.json; do
+          for f in package.json server.json plugins/devcdp/.claude-plugin/plugin.json plugins/devcdp/plugin.json gemini-extension.json; do
             V=$(node -p "require('./$f').version")
             [ "$V" = "$TAG" ] || { echo "$f says $V, tag says $TAG"; exit 1; }
           done

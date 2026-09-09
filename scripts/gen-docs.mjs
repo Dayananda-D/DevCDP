@@ -3,7 +3,7 @@
 // tool surface kept moving. Generating the reference from the registry means it
 // cannot drift; test/validate.mjs fails if the committed file is out of date.
 //
-//   npm run docs        regenerate docs/TOOLS.md and plugins/devcdp/skills/devcdp/SKILL.md
+//   npm run docs        regenerate docs/TOOLS.md, the plugin skill and GEMINI.md
 
 import fs from "fs";
 import path from "path";
@@ -139,6 +139,11 @@ description: How to debug a running web app with the DevCDP tools - connect to a
 
 `;
 
+/** Gemini CLI reads GEMINI.md as the extension's context file: the same guidance, no frontmatter. */
+export function generateGeminiContext() {
+  return fs.readFileSync(path.join(ROOT, "initialize", "AGENTS.md"), "utf8").replace(/\r\n/g, "\n");
+}
+
 /** The Claude Code plugin skill is the installer's guidance with frontmatter on top. */
 export function generateSkill() {
   const guide = fs.readFileSync(path.join(ROOT, "initialize", "AGENTS.md"), "utf8").replace(/\r\n/g, "\n");
@@ -150,6 +155,8 @@ if (invokedDirectly) {
   fs.mkdirSync(path.dirname(skillTarget), { recursive: true });
   fs.writeFileSync(skillTarget, generateSkill(), "utf8");
   console.log("wrote plugins/devcdp/skills/devcdp/SKILL.md");
+  fs.writeFileSync(path.join(ROOT, "GEMINI.md"), generateGeminiContext(), "utf8");
+  console.log("wrote GEMINI.md");
 
   const { text, count, ungrouped } = await generate();
   const target = path.join(ROOT, "docs", "TOOLS.md");

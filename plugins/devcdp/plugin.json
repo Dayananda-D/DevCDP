@@ -1,0 +1,42 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "devcdp",
+  "version": "5.0.1",
+  "description": "Real Chrome DevTools access for AI coding agents: console, network, DOM, source maps, breakpoints and live variables, plus guidance on when to use each.",
+  "author": {
+    "name": "Dayananda D",
+    "url": "https://github.com/Dayananda-D"
+  },
+  "homepage": "https://github.com/Dayananda-D/DevCDP#readme",
+  "repository": "https://github.com/Dayananda-D/DevCDP",
+  "license": "MIT",
+  "keywords": [
+    "chrome",
+    "devtools",
+    "debugging",
+    "browser",
+    "mcp",
+    "breakpoints",
+    "network",
+    "console"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "DevCDP",
+        "shortDescription": "Debug web apps in a real Chrome",
+        "longDescription": "Real Chrome DevTools access for AI coding agents: console, network, DOM, source maps, breakpoints and live variables, plus guidance on when to use each.",
+        "developerName": "Dayananda D",
+        "category": "Developer Tools",
+        "websiteURL": "https://github.com/Dayananda-D/DevCDP",
+        "privacyPolicyURL": "https://github.com/Dayananda-D/DevCDP/blob/main/PRIVACY.md",
+        "supportURL": "https://github.com/Dayananda-D/DevCDP/issues",
+        "defaultPrompt": [
+          "attach to my app and tell me why the order total shows NaN",
+          "reproduce the checkout flow and report what breaks",
+          "what framework is this page and which selectors work for the search form"
+        ]
+      }
+    }
+  }
+}

@@ -58,11 +58,24 @@ await check("release metadata agrees across package.json, server.json, plugin an
   assert.equal(srv.packages[0].identifier, pkg.name, "server.json package identifier");
   assert.ok(srv.description.length <= 100, "registry description is capped at 100 characters");
   assert.equal(plugin.version, pkg.version, "plugin.json version");
+  const codex = read("plugins/devcdp/plugin.json"), codexMcp = read("plugins/devcdp/mcp.json");
+  assert.equal(codex.version, pkg.version, "plugins/devcdp/plugin.json (Codex) version");
+  assert.deepEqual(codexMcp.mcpServers.devcdp.args, ["-y", `devcdp@${pkg.version}`], "Codex mcp.json must pin the same npm version");
+  assert.ok(fs.existsSync(".agents/plugins/marketplace.json"), "Codex marketplace must ship");
+  const gemini = read("gemini-extension.json");
+  assert.equal(gemini.version, pkg.version, "gemini-extension.json version");
+  assert.deepEqual(gemini.mcpServers.devcdp.args, ["-y", `devcdp@${pkg.version}`], "gemini-extension.json must pin the same npm version");
   assert.equal(market.plugins[0].version, pkg.version, "marketplace.json plugin version");
   assert.equal(market.plugins[0].source, "./plugins/devcdp");
   assert.equal(pkg.license, "MIT");
   for (const f of ["LICENSE", "PRIVACY.md", "plugins/devcdp/.mcp.json", "plugins/devcdp/scripts/launch.mjs"])
     assert.ok(fs.existsSync(f), `${f} must ship`);
+});
+
+await check("GEMINI.md carries the same guidance the installer writes (PUB-3)", async () => {
+  const { generateGeminiContext } = await import("../scripts/gen-docs.mjs");
+  const committed = fs.readFileSync("GEMINI.md", "utf8").replace(/\r\n/g, "\n");
+  assert.equal(committed, generateGeminiContext(), "GEMINI.md is out of date — run `npm run docs`");
 });
 
 await check("the plugin skill carries the same guidance the installer writes (PUB-2)", async () => {

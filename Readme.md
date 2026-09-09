@@ -71,6 +71,27 @@ On native Windows some clients need `"command": "cmd", "args": ["/c", "npx", "-y
 /plugin install devcdp@devcdp
 ```
 
+**Cursor:** [![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](cursor://anysphere.cursor-deeplink/mcp/install?name=devcdp&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImRldmNkcCJdfQ==),
+or add the JSON above to `~/.cursor/mcp.json`.
+
+**Gemini CLI**, as an extension that also carries the usage guidance:
+
+```
+gemini extensions install https://github.com/Dayananda-D/DevCDP
+```
+
+**opencode:** `opencode mcp add`, or in `opencode.json`:
+
+```json
+{ "mcp": { "devcdp": { "type": "local", "command": ["npx", "-y", "devcdp"], "enabled": true } } }
+```
+
+**Codex** (CLI, desktop, VS Code extension), as a plugin:
+
+```
+codex plugin marketplace add Dayananda-D/DevCDP
+```
+
 **VS Code:** [Install in VS Code](https://vscode.dev/redirect/mcp/install?name=devcdp&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22devcdp%22%5D%7D), or run *MCP: Add Server*, choose *NPM Package*,
 and enter `devcdp`. **Copilot CLI:** `/mcp add` with command `npx -y devcdp`. DevCDP is in
 the [official MCP Registry](https://registry.modelcontextprotocol.io/?q=devcdp); the picker

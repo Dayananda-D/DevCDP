@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "devcdp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "devcdp@5.0.1"
+      ]
+    }
+  }
+}
