@@ -1,0 +1,44 @@
+# Release: push a tag matching the version in package.json (e.g. v5.0.0).
+#
+#   1. offline test suites
+#   2. npm publish with provenance   (needs the NPM_TOKEN repository secret, an
+#                                     "Automation" token from npmjs.com; or configure
+#                                     npm Trusted Publishing for this repo and drop it)
+#   3. publish server.json to the official MCP Registry via GitHub OIDC (no secret)
+#
+# The integration suite needs a real Chrome, so it runs locally, not here.
+name: publish
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - name: tag must match package.json, server.json and the plugin manifest
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          for f in package.json server.json plugins/devcdp/.claude-plugin/plugin.json; do
+            V=$(node -p "require('./$f').version")
+            [ "$V" = "$TAG" ] || { echo "$f says $V, tag says $TAG"; exit 1; }
+          done
+      - run: npm run validate
+      - run: npm run test:installer
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          sudo mv mcp-publisher /usr/local/bin/
+      - run: mcp-publisher login github-oidc
+      - run: mcp-publisher publish
