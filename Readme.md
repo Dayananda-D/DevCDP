@@ -356,6 +356,13 @@ and reopen. Re-run the wizard if still missing.
 **A breakpoint never fires** — `debugger_list_breakpoints` and look at `bound`. An
 unbound breakpoint reports why.
 
+## Support the project
+
+DevCDP is free and MIT-licensed, built and maintained by one person. If it saved you a
+debugging afternoon, [sponsoring on GitHub](https://github.com/sponsors/Dayananda-D)
+keeps it moving. Teams wanting a hosted setup, shared learned memory across engineers, or
+an onboarding workshop can open an issue to start the conversation.
+
 ## Privacy and license
 
 DevCDP runs locally and sends nothing anywhere except to the MCP client you connected
