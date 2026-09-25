@@ -115,9 +115,15 @@ where they conflicted, clarity won:
 | `list_tabs` | ~42 | visibility probing, one short connection per tab |
 | `api_discover` | ~20 | plus an OpenAPI probe |
 | everything else | 0–10 | in-memory buffers |
+| interaction consequence check | ~50–220 | returns after a 50ms quiet window; keeps a 220ms ceiling for delayed effects |
 
-Nothing here needs optimising. The two probe-based calls are the only ones with real
-work in them, and both are bounded.
+Interaction tools no longer pay a fixed 220–320ms sleep after every action. They watch
+the console, mutation and network cursors and return after the page has been quiet for
+50ms, while retaining the previous ceiling when an effect is still arriving. This keeps
+the useful `caused` summary without making synchronous clicks feel slow.
+
+The two probe-based calls remain the only other calls with real work in them, and both
+are bounded.
 
 ---
 

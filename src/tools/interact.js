@@ -180,9 +180,29 @@ function markBefore(ctx) {
  * in console_get_logs / network_get_requests, and pasting it into every action response
  * would cost more context than the snapshot approach this exists to avoid.
  */
-async function consequenceOf(ctx, before, settleMs = 220) {
-  await new Promise(r => setTimeout(r, settleMs));
-
+export async function consequenceOf(ctx, before, settleMs = 220, quietMs = 50) {
+  // Most UI actions finish synchronously. Waiting the full settle window made
+  // every click pay 220ms, even when there was nothing left to observe. Return
+  // after a short quiet period, but keep the old maximum so delayed requests and
+  // renders remain observable. Any new buffer entry resets the quiet timer.
+  const started = Date.now();
+  let quietSince = started;
+  const signature = () => [
+    ctx.consoleBuf().stats().cursor,
+    ctx.mutations.stats().cursor,
+    ctx.network.all().length,
+  ].join(":");
+  let last = signature();
+  while (Date.now() - started < settleMs) {
+    await new Promise(r => setTimeout(r, Math.min(20, Math.max(1, quietMs))));
+    const current = signature();
+    if (current !== last) {
+      last = current;
+      quietSince = Date.now();
+    } else if (Date.now() - quietSince >= quietMs) {
+      break;
+    }
+  }
   const logs = ctx.consoleBuf().since(before.console);
   const errors = logs.filter(l => l.level === "error");
   const mutations = ctx.mutations.since(before.mutations);

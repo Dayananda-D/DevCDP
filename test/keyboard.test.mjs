@@ -1,6 +1,6 @@
 import assert from "assert";
 import { getTool, resolveArgs } from "../src/core/tools.js";
-import "../src/tools/interact.js";
+import { consequenceOf } from "../src/tools/interact.js";
 
 const tool = getTool("ui_press");
 assert.ok(tool, "ui_press must be registered");
@@ -43,5 +43,10 @@ await assert.rejects(
   () => tool.handler(resolveArgs(tool, { key: "Enter", keycode: 65 }), ctx),
   /key and keycode disagree/,
 );
+
+const started = performance.now();
+await consequenceOf(ctx, { console: 0, mutations: 0, requestIds: new Set() });
+const elapsed = performance.now() - started;
+assert.ok(elapsed < 180, `a quiet consequence should not pay the full 220ms ceiling (${Math.round(elapsed)}ms)`);
 
 console.log("keyboard keycode checks passed");
