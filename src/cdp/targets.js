@@ -66,7 +66,17 @@ export async function probeVisibility(host, port, targets, timeoutMs = 1200) {
     }
   };
 
-  const results = await Promise.all(targets.map(probe));
+  const results = [];
+  const width = Math.min(6, Math.max(1, targets.length));
+  let next = 0;
+  const worker = async () => {
+    for (;;) {
+      const i = next++;
+      if (i >= targets.length) return;
+      results[i] = await probe(targets[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: width }, worker));
   return new Map(results.map(r => [r.id, r]));
 }
 

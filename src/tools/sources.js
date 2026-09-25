@@ -103,8 +103,8 @@ defineTool({
     const perFileCap = Math.max(3, Math.ceil(args.max_results / 4));
     let cappedFiles = 0;
 
-    const scanText = (text, label, kind, extra = {}) => {
-      const lines = String(text).split(/\r?\n/);
+    const scanText = (text, label, kind, extra = {}, cachedLines = null) => {
+      const lines = cachedLines || String(text).split(/\r?\n/);
       let hereCount = 0;
       for (let i = 0; i < lines.length; i++) {
         if (results.length >= args.max_results) { stoppedEarly = true; return; }
@@ -197,13 +197,16 @@ defineTool({
       const batch = sources.slice(index, index + BATCH);
       await Promise.all(batch.map(async src => {
         if (src.text != null) return;
-        try { src.text = await cachedSource(ctx, src.scriptId); } catch (_) { src.text = null; }
+        try {
+          src.text = await cachedSource(ctx, src.scriptId);
+          src.lines = cachedSourceLines(ctx, src.scriptId, src.text);
+        } catch (_) { src.text = null; }
       }));
       for (const src of batch) {
         if (results.length >= args.max_results) { stoppedEarly = true; break; }
         if (src.text == null) continue;
         if (src.kind === "original") searched.originalFiles++; else searched.scripts++;
-        scanText(src.text, src.label, src.kind, src.extra);
+        scanText(src.text, src.label, src.kind, src.extra, src.lines);
         src.text = null;            // scanned; let it go
       }
     }
@@ -270,6 +273,16 @@ async function cachedSource(ctx, scriptId) {
     cache.map.delete(oldest);
   }
   return text;
+}
+function cachedSourceLines(ctx, scriptId, text) {
+  const cache = ctx.sourceCache;
+  cache.lines ||= new Map();
+  const hit = cache.lines.get(scriptId);
+  if (hit) return hit;
+  const lines = String(text).split(/\r?\n/);
+  cache.lines.set(scriptId, lines);
+  while (cache.lines.size > cache.map.size) cache.lines.delete(cache.lines.keys().next().value);
+  return lines;
 }
 
 defineTool({

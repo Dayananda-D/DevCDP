@@ -122,6 +122,11 @@ the console, mutation and network cursors and return after the page has been qui
 50ms, while retaining the previous ceiling when an effect is still arriving. This keeps
 the useful `caused` summary without making synchronous clicks feel slow.
 
+The consequence check now watches monotonic buffer versions rather than rebuilding the
+entire network request list on every poll. Network completion and failure updates also
+advance that version, so a pending request becoming a 200 or 500 is observed even when
+the number of requests does not change.
+
 The two probe-based calls remain the only other calls with real work in them, and both
 are bounded.
 
@@ -178,3 +183,22 @@ a handful of files rather than dragging through vendor code first.
 `url_filter` remains the cheapest search by a wide margin. When a truncated result
 appears, the response says how many sources went unsearched — worth reading before
 concluding that the matches you got are all there are.
+
+Repeated searches also reuse the split line representation for cached scripts, avoiding
+another full `text.split()` over large bundles while keeping the source-text cache bounded.
+
+## Interaction and attach-path improvements
+
+`ui_type` retains real per-character events by default. For ordinary fields that do not
+need keypress handlers, `fast:true` uses one `Input.insertText` call instead. This is
+opt-in because autocomplete, masks and validation-on-key depend on the slower semantics.
+
+Status now probes the in-page agent and tab-group marker concurrently after the liveness
+check. Tab visibility probes use a six-connection concurrency cap, avoiding a connection
+storm when Chrome has many tabs while still finishing in parallel. Attach updates its
+badge and pre-attach snapshot concurrently, without moving either operation before the
+required agent installation.
+
+Actionability polling starts at 20ms for a newly rendered control and backs off to 50ms
+and then 100ms near the timeout. Stable controls become interactive faster; slow or
+animated controls retain the same readiness checks and timeout behavior.

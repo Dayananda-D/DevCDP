@@ -111,12 +111,12 @@ defineTool({
       page = JSON.parse(res?.result?.value || "{}");
     } catch (_) { pageStalled = true; }
 
-    const agent = pageStalled ? null : await conn.agentReport();
-
-    // F2 — the companion extension writes the group id back into the DOM, so we
-    // can report whether the tab really is grouped rather than assuming it.
-    let grouping = { grouped: false, unknown: pageStalled || undefined };
-    if (!pageStalled) try {
+    const groupingProbe = (async () => {
+      // F2 — the companion extension writes the group id back into the DOM, so we
+      // can report whether the tab really is grouped rather than assuming it.
+      let grouping = { grouped: false, unknown: pageStalled || undefined };
+      if (pageStalled) return grouping;
+      try {
       const gRaw = await conn.evalQuiet(
         `JSON.stringify({g:document.documentElement.getAttribute('data-devcdp-group'),
                          c:document.documentElement.getAttribute('data-devcdp-group-color'),
@@ -161,7 +161,13 @@ defineTool({
               meanwhile: "Grouping is the only thing missing. The edge border, the identity chip and window:'new' all work without it." }
           : {}),
       };
-    } catch (_) {}
+      } catch (_) {}
+      return grouping;
+    })();
+    const [agent, grouping] = await Promise.all([
+      pageStalled ? Promise.resolve(null) : conn.agentReport(),
+      groupingProbe,
+    ]);
 
     return {
       connected: true,

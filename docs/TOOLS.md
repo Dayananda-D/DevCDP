@@ -381,7 +381,7 @@ Arguments:
 
 ### `ui_type`
 
-Type into a field one character at a time with real key events, through the same input pipeline a person's keyboard uses — so the field's own rules apply: maxlength truncates, a keypress guard rejects what it rejects, and a mask reformats as it goes. This is the tool for reproducing user behaviour, and for anything reacting per keystroke: search-as-you-type, autocomplete, validation-on-key. Slower than ui_fill by design. Note that typing leaves the field focused and `change` fires on blur, so pass submit:true (or press Tab) when the application validates on change.
+Type into a field one character at a time with real key events, through the same input pipeline a person's keyboard uses — so the field's own rules apply: maxlength truncates, a keypress guard rejects what it rejects, and a mask reformats as it goes. This is the tool for reproducing user behaviour, and for anything reacting per keystroke: search-as-you-type, autocomplete, validation-on-key. Slower than ui_fill by design. Set fast:true for ordinary fields to insert the whole string in one CDP call; fast mode does not reproduce per-key handlers. Note that typing leaves the field focused and `change` fires on blur, so pass submit:true (or press Tab) when the application validates on change.
 
 Arguments:
 
@@ -396,6 +396,7 @@ Arguments:
   - `text_to_type` · *string* · **required** — Characters to type.
   - `clear_first` · *boolean* · default `true` — Select all and delete before typing.
   - `delay_ms` · *number* · default `12` — Pause between keystrokes. Raise it if the field drops characters.
+  - `fast` · *boolean* · default `false` — Insert all text in one CDP operation. Faster, but skips per-keystroke handlers; default false.
   - `submit` · *boolean* · default `false` — Press Enter afterwards.
 
 *Changes page or app state.*

@@ -4,18 +4,26 @@ import { consequenceOf } from "../src/tools/interact.js";
 
 const tool = getTool("ui_press");
 assert.ok(tool, "ui_press must be registered");
+const typeTool = getTool("ui_type");
+assert.ok(typeTool, "ui_type must be registered");
 
 const events = [];
+const inserted = [];
 const ctx = {
   cfg: { showCursor: false, testAttributes: ["data-testid"] },
   conn: {
     client: {
       Input: {
         async dispatchKeyEvent(event) { events.push(event); },
+        async insertText(data) { inserted.push(data.text); },
       },
     },
     setBadge() {},
-    async eval() { return { result: { value: "{}" } }; },
+    async eval(_expression, options = {}) {
+      return { result: { value: options.label === "actionability check"
+        ? JSON.stringify({ ready: true, found: 1, rect: { x: 1, y: 1, w: 100, h: 20 }, node: { tag: "input" }, x: 50, y: 10 })
+        : "{}" } };
+    },
   },
   consoleBuf: () => ({ stats: () => ({ cursor: 0 }), since: () => [] }),
   mutations: { stats: () => ({ cursor: 0 }), since: () => [] },
@@ -48,5 +56,10 @@ const started = performance.now();
 await consequenceOf(ctx, { console: 0, mutations: 0, requestIds: new Set() });
 const elapsed = performance.now() - started;
 assert.ok(elapsed < 180, `a quiet consequence should not pay the full 220ms ceiling (${Math.round(elapsed)}ms)`);
+
+const typeArgs = resolveArgs(typeTool, { selector: "input", text_to_type: "hello@example.com", fast: true, clear_first: false });
+const typed = await typeTool.handler(typeArgs, ctx);
+assert.equal(typed.mode, "fast");
+assert.deepEqual(inserted, ["hello@example.com"]);
 
 console.log("keyboard keycode checks passed");

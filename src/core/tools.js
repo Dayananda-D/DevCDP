@@ -274,7 +274,9 @@ export function capResponse(payload, maxBytes, toolName) {
     };
 
     const pruned = [];
-    for (let pass = 0; pass < 200 && size(out) > maxBytes; pass++) {
+    // Thirty-two progressively larger reductions are enough for normal payloads;
+    // the final backstop below still guarantees the byte ceiling for pathological input.
+    for (let pass = 0; pass < 32 && size(out) > maxBytes; pass++) {
       const list = candidates();
       if (!list.length) break;
       // A parent always weighs more than the child inside it, so "heaviest" alone

@@ -308,13 +308,14 @@ export class Connection {
     // screen ever named an owner. A tab that says "session 2 — opened its own window"
     // cannot be mistaken for session 1's tab.
     const n = ctx.registry.sessionNumber;
-    await this.setBadge(
-      openedNewTab
-        ? `session ${n} — opened this ${openedNewTab.launchedBrowserOnPort ? "browser" : openedNewTab.inOwnWindow ? "window" : "tab"}, every other tab was claimed`
-        : `session ${n} attached — watching this tab`,
-      null);
-
-    this.preAttach = await this.snapshotPreAttach();
+    const badge = openedNewTab
+      ? `session ${n} — opened this ${openedNewTab.launchedBrowserOnPort ? "browser" : openedNewTab.inOwnWindow ? "window" : "tab"}, every other tab was claimed`
+      : `session ${n} attached — watching this tab`;
+    const [, preAttach] = await Promise.all([
+      this.setBadge(badge, null),
+      this.snapshotPreAttach(),
+    ]);
+    this.preAttach = preAttach;
     this.startKeepalive();
     await this.startWatcher();
 
