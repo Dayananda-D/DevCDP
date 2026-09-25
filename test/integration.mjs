@@ -30,6 +30,7 @@ import "../src/tools/memory.js";
 import "../src/tools/discover.js";
 import "../src/tools/guide.js";
 import "../src/tools/settings.js";
+import "../src/tools/diagnose.js";
 
 const REGISTRY_DIR = path.join(os.tmpdir(), `devcdp-test-registry-${process.pid}`);
 process.env.DEVCDP_REGISTRY_DIR = REGISTRY_DIR;

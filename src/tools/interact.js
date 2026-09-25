@@ -435,11 +435,18 @@ const KEYS = {
   Space:      { key: " ", code: "Space", keyCode: 32, text: " " },
 };
 
-async function pressKey(ctx, name, modifiers = 0) {
-  const spec = KEYS[name];
-  if (!spec) {
-    fail(CODES.BAD_ARGS, `Unknown key "${name}".`, `Known keys: ${Object.keys(KEYS).join(", ")}. For characters, use ui_type.`);
+async function pressKey(ctx, name, keycode, key, code, modifiers = 0) {
+  const named = name ? KEYS[name] : null;
+  if (!named && keycode == null) {
+    fail(CODES.BAD_ARGS, "Provide either key or keycode.", `Named keys: ${Object.keys(KEYS).join(", ")}. For characters, use ui_type.`);
   }
+  if (keycode != null && (!Number.isInteger(keycode) || keycode < 0 || keycode > 65535)) {
+    fail(CODES.BAD_ARGS, `Invalid keycode ${keycode}.`, "keycode must be an integer from 0 through 65535.");
+  }
+  if (named && keycode != null && keycode !== named.keyCode) {
+    fail(CODES.BAD_ARGS, `key and keycode disagree (${name} is ${named.keyCode}, got ${keycode}).`, "Use the matching numeric keycode or omit keycode.");
+  }
+  const spec = named || { key: key || "Unidentified", code: code || "", keyCode: keycode };
   const Input = ctx.conn.client.Input;
   const base = { key: spec.key, code: spec.code, windowsVirtualKeyCode: spec.keyCode, nativeVirtualKeyCode: spec.keyCode, modifiers };
   // rawKeyDown rather than keyDown when there is no text: keyDown with no text is
@@ -451,11 +458,13 @@ async function pressKey(ctx, name, modifiers = 0) {
 defineTool({
   name: "ui_press",
   description:
-    "Press a key — Enter to submit, Tab to move on, Escape to dismiss, arrows to move through a list or grid. "
+    "Press a named key or an arbitrary numeric keycode — Enter to submit, Tab to move on, Escape to dismiss, arrows to move through a list or grid. "
     + "Optionally focuses an element first. This is the tool for keyboard-driven screens, where clicking the control "
     + "is not how the application expects to be used.",
   args: {
-    key: { type: "string", description: `Key name: ${Object.keys(KEYS).join(", ")}.`, required: true },
+    key: { type: "string", description: `Named key: ${Object.keys(KEYS).join(", ")}. Optional when keycode is supplied.` },
+    keycode: { type: "number", description: "Numeric Windows/DOM virtual-key code, 0–65535. Optional when key is supplied.", min: 0, max: 65535 },
+    code: { type: "string", description: "Optional KeyboardEvent.code metadata for numeric keycode input, e.g. KeyA or F13." },
     ...Object.fromEntries(Object.entries(TARGET_ARGS).map(([k, v]) =>
       [k, k === "selector" || k === "text" || k === "testid"
         ? { ...v, description: v.description + " Optional: focuses this element first." }
@@ -476,12 +485,13 @@ defineTool({
 
     const before = markBefore(ctx);
     const mods = modifierMask(args.modifiers);
-    for (let i = 0; i < args.times; i++) await pressKey(ctx, args.key, mods);
+    for (let i = 0; i < args.times; i++) await pressKey(ctx, args.key, args.keycode, args.key, args.code, mods);
 
-    ctx.conn.setBadge(`pressed ${args.key}${args.times > 1 ? ` ×${args.times}` : ""}`, "busy");
-    ctx.recordActivity("interaction", { action: "key", key: args.key, times: args.times });
+    const pressed = args.key || `keycode:${args.keycode}`;
+    ctx.conn.setBadge(`pressed ${pressed}${args.times > 1 ? ` ×${args.times}` : ""}`, "busy");
+    ctx.recordActivity("interaction", { action: "key", key: pressed, keycode: args.keycode, times: args.times });
     return {
-      pressed: args.key, times: args.times,
+      pressed, ...(args.keycode != null ? { keycode: args.keycode } : {}), times: args.times,
       ...(focused ? { focused } : {}),
       caused: await consequenceOf(ctx, before),
     };
