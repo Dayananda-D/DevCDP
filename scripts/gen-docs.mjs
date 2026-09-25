@@ -14,7 +14,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const GROUPS = [
   ["Getting oriented", ["workflow_guide", "devcdp_settings", "devcdp_settings_init"],
     "Start here. `workflow_guide` explains the division of labour and the traps; the settings tools show what configuration is in effect and where it came from."],
-  ["Connecting", ["devtools_connect", "devtools_status", "devtools_disconnect", "list_tabs", "sessions_list"],
+  ["Connecting", ["devtools_connect", "devtools_status", "devcdp_triage", "devtools_disconnect", "list_tabs", "sessions_list"],
     "Attaching to a tab claims it, so no other DevCDP session can drive it. `sessions_list` shows who holds what when a tab is unavailable."],
   ["Page control", ["page_navigate", "page_reload", "page_interrupt"],
     "`page_reload` is often the first thing to reach for: console and network capture start at attach, so a reload replays the page with DevCDP watching. `page_interrupt` is the only thing that frees a page whose main thread is blocked."],

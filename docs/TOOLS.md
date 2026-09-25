@@ -2,7 +2,7 @@
 
 **Generated from the tool registry — do not edit by hand.** Run `npm run docs` after changing a tool.
 
-74 tools. Every one is callable by name over MCP; the arguments below are exactly what the
+75 tools. Every one is callable by name over MCP; the arguments below are exactly what the
 server validates, with the defaults it applies.
 
 ## Contents
@@ -81,6 +81,16 @@ Connection health and buffer accounting: which tab is attached, how many console
 *No arguments.*
 
 *Read-only; works without an attached tab.*
+
+### `devcdp_triage`
+
+Return a compact, low-token diagnosis of the attached page and the next best debugging action. Use this first after connecting or after a reproduction instead of calling status, console and network tools separately. It never includes full logs, DOM, headers, or response bodies; use the suggested follow-up tool for detail.
+
+Arguments:
+
+  - `include_recent` · *boolean* · default `true` — Include up to five recent app console errors and failed requests.
+
+*Read-only.*
 
 ### `devtools_disconnect`
 
@@ -429,11 +439,13 @@ Arguments:
 
 ### `ui_press`
 
-Press a key — Enter to submit, Tab to move on, Escape to dismiss, arrows to move through a list or grid. Optionally focuses an element first. This is the tool for keyboard-driven screens, where clicking the control is not how the application expects to be used.
+Press a named key or an arbitrary numeric keycode — Enter to submit, Tab to move on, Escape to dismiss, arrows to move through a list or grid. Optionally focuses an element first. This is the tool for keyboard-driven screens, where clicking the control is not how the application expects to be used.
 
 Arguments:
 
-  - `key` · *string* · **required** — Key name: Enter, Tab, Escape, Backspace, Delete, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Home, End, PageUp, PageDown, Space.
+  - `key` · *string* — Named key: Enter, Tab, Escape, Backspace, Delete, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Home, End, PageUp, PageDown, Space. Optional when keycode is supplied.
+  - `keycode` · *number* — Numeric Windows/DOM virtual-key code, 0–65535. Optional when key is supplied.
+  - `code` · *string* — Optional KeyboardEvent.code metadata for numeric keycode input, e.g. KeyA or F13.
   - `selector` · *string* — CSS selector. Descends into open shadow roots. Optional: focuses this element first.
   - `text` · *string* — Visible text on the control. Matches the innermost element that carries it, and follows a <label> to its input. Optional: focuses this element first.
   - `testid` · *string* — Value of a test attribute (data-testid and friends — see the testAttributes setting). Optional: focuses this element first.

@@ -62,7 +62,7 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "validate": "node test/validate.mjs",
-    "test": "node test/validate.mjs && node test/installer.test.mjs && node test/integration.mjs",
+    "test": "node test/validate.mjs && node test/diagnose.test.mjs && node test/keyboard.test.mjs && node test/installer.test.mjs && node test/integration.mjs",
     "test:integration": "node test/integration.mjs",
     "test:installer": "node test/installer.test.mjs",
     "docs": "node scripts/gen-docs.mjs",

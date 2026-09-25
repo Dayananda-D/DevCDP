@@ -61,6 +61,7 @@ import "./tools/session.js";
 import "./tools/memory.js";
 import "./tools/discover.js";
 import "./tools/settings.js";
+import "./tools/diagnose.js";
 import { narrate, narrateFailure } from "./core/narrate.js";
 
 export function createServer(overrides = {}) {
