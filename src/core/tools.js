@@ -92,6 +92,13 @@ const VERBOSE_ARG = {
   description: "Return the full payload instead of the compact projection. Default false.",
   default: false,
 };
+// These fields are accepted on every call but are intentionally omitted from
+// individual tool schemas: they are transport-level coordination metadata.
+const COORDINATION_ARGS = {
+  agent_id: { type: "string", description: "Coordinator agent identity.", default: "default" },
+  request_id: { type: "string", description: "Optional idempotency and cancellation key for this call." },
+  lease_id: { type: "string", description: "Session action lease for a mutating call." },
+};
 
 function toJsonSchema(args, { includeVerbose = false } = {}) {
   const properties = {};
@@ -141,7 +148,7 @@ const TYPE_OK = {
  */
 export function resolveArgs(tool, raw = {}) {
   // Accepted whether advertised or not, so passing it is never an error.
-  const spec = { ...tool.args, verbose: VERBOSE_ARG };
+  const spec = { ...COORDINATION_ARGS, ...tool.args, verbose: VERBOSE_ARG };
   const out  = {};
   const problems = [];
 

@@ -202,3 +202,17 @@ required agent installation.
 Actionability polling starts at 20ms for a newly rendered control and backs off to 50ms
 and then 100ms near the timeout. Stable controls become interactive faster; slow or
 animated controls retain the same readiness checks and timeout behavior.
+
+## Multi-agent session safety
+
+One DevCDP process owns one browser context. The session coordinator now permits
+read-only calls from multiple registered agents to run concurrently, while page and
+session mutations use a fair exclusive queue. Non-default agents must acquire the
+session action lease before mutating the page. Every call may carry `agent_id`,
+`request_id`, and `lease_id`; completed request IDs replay their original result rather
+than repeating a side effect, and queued calls can be cancelled safely.
+
+Use `session_agent_register`, `session_agent_acquire_lease`, `session_agent_status`, and
+`session_agent_release_lease` when several workers share one DevCDP process. Keep one
+orchestrator responsible for ordering related browser actions even though independent
+readers can run in parallel.

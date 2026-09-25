@@ -47,6 +47,9 @@ const GROUPS = [
   ["Session bookkeeping", ["session_start", "session_step_done", "session_step_failed", "session_get_status",
     "session_get_activity", "session_get_state", "session_end"],
     "Optional. Useful for multi-step reproductions; a single question does not need it."],
+  ["Multi-agent coordination", ["session_agent_register", "session_agent_unregister", "session_agent_acquire_lease",
+    "session_agent_release_lease", "session_agent_status", "session_agent_cancel"],
+    "Register parallel workers by identity. Read-only calls may overlap; page and session mutations are serialized, and non-default agents must hold the action lease."],
   ["Learned memory", ["memory_get", "memory_record", "memory_import_legacy"],
     "Record what fixed a problem so a later session skips the dead end. Set `sharedMemoryDir` to pool entries across a team."],
 ];
@@ -75,6 +78,7 @@ export async function generate() {
   out.push("");
   out.push(`${tools.size} tools. Every one is callable by name over MCP; the arguments below are exactly what the`);
   out.push("server validates, with the defaults it applies.");
+  out.push("Every tool also accepts optional coordination metadata: `agent_id`, `request_id`, and `lease_id`; these are omitted from individual schemas to keep the tool surface compact.");
   out.push("");
   out.push("## Contents");
   out.push("");
