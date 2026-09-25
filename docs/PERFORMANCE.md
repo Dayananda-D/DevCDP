@@ -115,9 +115,20 @@ where they conflicted, clarity won:
 | `list_tabs` | ~42 | visibility probing, one short connection per tab |
 | `api_discover` | ~20 | plus an OpenAPI probe |
 | everything else | 0–10 | in-memory buffers |
+| interaction consequence check | ~50–220 | returns after a 50ms quiet window; keeps a 220ms ceiling for delayed effects |
 
-Nothing here needs optimising. The two probe-based calls are the only ones with real
-work in them, and both are bounded.
+Interaction tools no longer pay a fixed 220–320ms sleep after every action. They watch
+the console, mutation and network cursors and return after the page has been quiet for
+50ms, while retaining the previous ceiling when an effect is still arriving. This keeps
+the useful `caused` summary without making synchronous clicks feel slow.
+
+The consequence check now watches monotonic buffer versions rather than rebuilding the
+entire network request list on every poll. Network completion and failure updates also
+advance that version, so a pending request becoming a 200 or 500 is observed even when
+the number of requests does not change.
+
+The two probe-based calls remain the only other calls with real work in them, and both
+are bounded.
 
 ---
 
@@ -172,3 +183,36 @@ a handful of files rather than dragging through vendor code first.
 `url_filter` remains the cheapest search by a wide margin. When a truncated result
 appears, the response says how many sources went unsearched — worth reading before
 concluding that the matches you got are all there are.
+
+Repeated searches also reuse the split line representation for cached scripts, avoiding
+another full `text.split()` over large bundles while keeping the source-text cache bounded.
+
+## Interaction and attach-path improvements
+
+`ui_type` retains real per-character events by default. For ordinary fields that do not
+need keypress handlers, `fast:true` uses one `Input.insertText` call instead. This is
+opt-in because autocomplete, masks and validation-on-key depend on the slower semantics.
+
+Status now probes the in-page agent and tab-group marker concurrently after the liveness
+check. Tab visibility probes use a six-connection concurrency cap, avoiding a connection
+storm when Chrome has many tabs while still finishing in parallel. Attach updates its
+badge and pre-attach snapshot concurrently, without moving either operation before the
+required agent installation.
+
+Actionability polling starts at 20ms for a newly rendered control and backs off to 50ms
+and then 100ms near the timeout. Stable controls become interactive faster; slow or
+animated controls retain the same readiness checks and timeout behavior.
+
+## Multi-agent session safety
+
+One DevCDP process owns one browser context. The session coordinator now permits
+read-only calls from multiple registered agents to run concurrently, while page and
+session mutations use a fair exclusive queue. Non-default agents must acquire the
+session action lease before mutating the page. Every call may carry `agent_id`,
+`request_id`, and `lease_id`; completed request IDs replay their original result rather
+than repeating a side effect, and queued calls can be cancelled safely.
+
+Use `session_agent_register`, `session_agent_acquire_lease`, `session_agent_status`, and
+`session_agent_release_lease` when several workers share one DevCDP process. Keep one
+orchestrator responsible for ordering related browser actions even though independent
+readers can run in parallel.

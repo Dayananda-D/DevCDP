@@ -92,6 +92,13 @@ const VERBOSE_ARG = {
   description: "Return the full payload instead of the compact projection. Default false.",
   default: false,
 };
+// These fields are accepted on every call but are intentionally omitted from
+// individual tool schemas: they are transport-level coordination metadata.
+const COORDINATION_ARGS = {
+  agent_id: { type: "string", description: "Coordinator agent identity.", default: "default" },
+  request_id: { type: "string", description: "Optional idempotency and cancellation key for this call." },
+  lease_id: { type: "string", description: "Session action lease for a mutating call." },
+};
 
 function toJsonSchema(args, { includeVerbose = false } = {}) {
   const properties = {};
@@ -141,7 +148,7 @@ const TYPE_OK = {
  */
 export function resolveArgs(tool, raw = {}) {
   // Accepted whether advertised or not, so passing it is never an error.
-  const spec = { ...tool.args, verbose: VERBOSE_ARG };
+  const spec = { ...COORDINATION_ARGS, ...tool.args, verbose: VERBOSE_ARG };
   const out  = {};
   const problems = [];
 
@@ -274,7 +281,9 @@ export function capResponse(payload, maxBytes, toolName) {
     };
 
     const pruned = [];
-    for (let pass = 0; pass < 200 && size(out) > maxBytes; pass++) {
+    // Thirty-two progressively larger reductions are enough for normal payloads;
+    // the final backstop below still guarantees the byte ceiling for pathological input.
+    for (let pass = 0; pass < 32 && size(out) > maxBytes; pass++) {
       const list = candidates();
       if (!list.length) break;
       // A parent always weighs more than the child inside it, so "heaviest" alone

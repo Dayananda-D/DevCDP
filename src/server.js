@@ -62,6 +62,7 @@ import "./tools/memory.js";
 import "./tools/discover.js";
 import "./tools/settings.js";
 import "./tools/diagnose.js";
+import "./tools/coordinator.js";
 import { narrate, narrateFailure } from "./core/narrate.js";
 
 export function createServer(overrides = {}) {
@@ -92,52 +93,45 @@ export function createServer(overrides = {}) {
 
       const args = resolveArgs(tool, rawArgs || {});
 
-      // One place decides whether a live page is required, and reconnects if so.
-      let reconnect = null;
-      if (tool.needsClient) {
-        const r = await ctx.conn.ensure();
-        if (r?.reconnected) reconnect = r;
-      }
-
-      // Nothing may hang for ever. A tool that waits on purpose declares its own
-      // ceiling; everything else gets the configured backstop.
-      const deadlineMs = tool.deadlineFor ? tool.deadlineFor(args, ctx) : ctx.cfg.toolTimeoutMs;
-
-      // Say what is about to happen, before it happens. One place, so every tool is
-      // covered — including ones that do not exist yet.
-      narrate(ctx, name, args);
-
-      let result, retried = null;
-      try {
-        result = await withDeadline(tool.handler(args, ctx), deadlineMs, name);
-      } catch (err) {
-        // A socket that died mid-call is worth exactly one retry, after
-        // reattaching — anything more risks repeating a side effect.
-        if (ctx.cfg.retryOnDisconnect && tool.needsClient && tool.retryable !== false && isTransient(err)) {
-          log.warn("tool", `${name} hit a dropped connection — reattaching and retrying once`);
-          ctx.conn.client = null;
+      const coordination = await ctx.coordinator.run({
+        agentId: args.agent_id,
+        requestId: args.request_id,
+        leaseId: args.lease_id,
+        toolName: name,
+        readOnly: !!tool.readOnly,
+        requiresLease: !tool.coordination,
+        fingerprint: JSON.stringify({ name, args }),
+      }, async () => {
+        // One place decides whether a live page is required, and reconnects if so.
+        let reconnect = null;
+        if (tool.needsClient) {
           const r = await ctx.conn.ensure();
-          retried = { reason: err.message, reconnected: r?.reconnected === true };
+          if (r?.reconnected) reconnect = r;
+        }
+        const deadlineMs = tool.deadlineFor ? tool.deadlineFor(args, ctx) : ctx.cfg.toolTimeoutMs;
+        narrate(ctx, name, args);
+        let result, retried = null;
+        try {
           result = await withDeadline(tool.handler(args, ctx), deadlineMs, name);
-        } else throw err;
-      }
+        } catch (err) {
+          if (ctx.cfg.retryOnDisconnect && tool.needsClient && tool.retryable !== false && isTransient(err)) {
+            log.warn("tool", `${name} hit a dropped connection — reattaching and retrying once`);
+            ctx.conn.client = null;
+            const r = await ctx.conn.ensure();
+            retried = { reason: err.message, reconnected: r?.reconnected === true };
+            result = await withDeadline(tool.handler(args, ctx), deadlineMs, name);
+          } else throw err;
+        }
+        const media = result && typeof result === "object" ? result._media : null;
+        if (media) delete result._media;
+        const payload = capResponse(shape(tool, result, args), ctx.cfg.maxResponseBytes, name);
+        annotateResponse(payload, ctx, { reconnect, retried });
+        return { payload, media };
+      });
 
-      // Binary a tool wants the model to actually see, lifted out before shaping.
-      //
-      // It cannot travel through the JSON payload: capResponse would treat a megabyte
-      // of base64 as the heaviest string in the tree and truncate it to 200 characters,
-      // producing a corrupt image and a cheerful _truncated note. MCP has a content
-      // type for exactly this, so it goes alongside the text rather than inside it.
-      const media = result && typeof result === "object" ? result._media : null;
-      if (media) delete result._media;
-
-      const payload = capResponse(shape(tool, result, args), ctx.cfg.maxResponseBytes, name);
-
-      annotateResponse(payload, ctx, { reconnect, retried });
-
-      log.debug("tool", `${name} ok`, { ms: Date.now() - started });
-      const content = [{ type: "text", text: JSON.stringify(payload, null, 2) }];
-      if (media?.data) content.push({ type: "image", data: media.data, mimeType: media.mimeType || "image/png" });
+      log.debug("tool", `${name} ok`, { ms: Date.now() - started, agent: args.agent_id, requestId: coordination.requestId });
+      const content = [{ type: "text", text: JSON.stringify(coordination.payload, null, 2) }];
+      if (coordination.media?.data) content.push({ type: "image", data: coordination.media.data, mimeType: coordination.media.mimeType || "image/png" });
       return { content };
 
     } catch (err) {

@@ -199,6 +199,7 @@ const DEFAULTS = {
   maxResponseBytes: 16000,
 
   // ── limits ──
+  maxAgentsPerSession: 32,
   consoleBufferSize: 2000,
   networkBufferSize: 500,
   mutationBufferSize: 400,
@@ -228,6 +229,7 @@ const ENV_MAP = {
   DEVCDP_DOCS_ROOT:           ["docsRoot",           String],
   DEVCDP_HELP_BASE_URL:       ["helpBaseUrl",        String],
   DEVCDP_SHARED_MEMORY_DIR:   ["sharedMemoryDir",    String],
+  DEVCDP_MAX_AGENTS:           ["maxAgentsPerSession", Number],
   DEVCDP_CAPTURE_INPUT_VALUES:["captureInputValues", v => v === "1" || v === "true"],
   DEVCDP_DISABLE_WEB_SECURITY:["disableWebSecurity", v => v === "1" || v === "true"],
   DEVCDP_DIALOG_SELECTORS:    ["dialogSelectors",    v => v.split(",").map(s => s.trim()).filter(Boolean)],
@@ -361,6 +363,7 @@ export function loadConfig(overrides = {}) {
   // Never below 20s: the overlay beats on the 20s keepalive, so a shorter timeout
   // would tear down healthy overlays between beats.
   clamp("ownerTimeoutMs", 20000, 600000, DEFAULTS.ownerTimeoutMs);
+  clamp("maxAgentsPerSession", 1, 256, DEFAULTS.maxAgentsPerSession);
   if (!Array.isArray(cfg.dialogSelectors)) cfg.dialogSelectors = [];
   if (!Array.isArray(cfg.testAttributes) || !cfg.testAttributes.length) cfg.testAttributes = DEFAULTS.testAttributes;
 
