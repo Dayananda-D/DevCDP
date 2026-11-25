@@ -153,7 +153,10 @@ export function narrate(ctx, name, args) {
   if (!ctx?.cfg?.narrateTools) return null;
   const phrase = phraseFor(name, args);
   if (!phrase) return null;
-  try { ctx.conn?.setBadge?.(phrase, "busy")?.catch?.(() => {}); } catch (_) {}
+  try {
+    ctx.conn?.setBadge?.(phrase, "busy")?.catch?.(() => {});
+    ctx.conn?.addActivity?.("next", phrase)?.catch?.(() => {});
+  } catch (_) {}
   return phrase;
 }
 
@@ -164,6 +167,9 @@ export function narrateFailure(ctx, name, err) {
   const what = VERBS[name] || generic(name);
   const why = clean(err?.message || "failed").slice(0, 90);
   const phrase = `${what} — ${why}`;
-  try { ctx.conn?.setBadge?.(phrase, "err")?.catch?.(() => {}); } catch (_) {}
+  try {
+    ctx.conn?.setBadge?.(phrase, "err")?.catch?.(() => {});
+    ctx.conn?.addActivity?.("error", phrase)?.catch?.(() => {});
+  } catch (_) {}
   return phrase;
 }

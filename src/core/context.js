@@ -9,6 +9,7 @@ import crypto from "crypto";
 import { ConsoleStore, NetworkStore, RingBuffer } from "./buffers.js";
 import { SessionRegistry } from "../cdp/registry.js";
 import { loadConfig } from "./config.js";
+import { SessionCoordinator } from "./coordinator.js";
 
 export function createContext(overrides = {}) {
   const cfg = loadConfig(overrides);
@@ -22,6 +23,7 @@ export function createContext(overrides = {}) {
     startedAt: new Date().toISOString(),
 
     registry: new SessionRegistry(sessionId),
+    coordinator: new SessionCoordinator({ maxAgents: cfg.maxAgentsPerSession }),
 
     // ── live connection, owned by src/cdp/connection.js ──
     conn: null,
