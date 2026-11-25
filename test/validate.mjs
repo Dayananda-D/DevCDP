@@ -368,10 +368,10 @@ await check("nonsense setting values are clamped, not obeyed", () => {
   assert.deepEqual(cfg.chromeFlags, [], "a non-array flag list must not reach the command line");
 });
 
-await check("toast defaults: shown, top-right, translucent, self-fading", () => {
+await check("toast defaults: shown, bottom-center, translucent, self-fading", () => {
   const cfg = loadConfig({});
   assert.equal(cfg.toasts, true, "toasts are shown by default; toasts:false hides them");
-  assert.equal(cfg.toastCorner, "tr", "messages keep their own corner, independent of the badge");
+  assert.equal(cfg.toastCorner, "bc", "messages keep their own corner, independent of the badge");
   assert.notEqual(cfg.toastCorner, cfg.badgeCorner, "the badge is centred; the messages are not");
   assert.equal(cfg.toastPosition, cfg.toastCorner, "the alias must mirror the real setting");
   assert.ok(cfg.toastOpacity < 1, "must be translucent by default");
