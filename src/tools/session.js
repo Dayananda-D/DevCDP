@@ -51,34 +51,43 @@ defineTool({
   name: "session_start",
   destructive: false,
   description:
-    "Open a debugging session with a goal and an ordered list of steps, so progress is tracked and a failed step can "
-    + "fall back to asking the human. Use it for multi-step reproductions; a single-question investigation does not "
-    + "need it.",
+    "Start the structured DevCDP side-panel session. Always provide the predefined Goal and Expectation fields, then "
+    + "provide the model's variable ordered Plan as steps. Include the AI client's conversation/session name and ID "
+    + "when available, such as 'Forked Mru build' and 'Made2Manage-E6'.",
   args: {
     goal:  { type: "string", description: "What you are trying to find out or prove.", required: true },
-    steps: { type: "array",  description: "Ordered steps, each { id, description, actor }. actor is 'agent', 'user' or 'either'.", required: true,
+    expectation: { type: "string", description: "Predefined Expectation field: what you expect the investigation to establish or observe.", required: true },
+    steps: { type: "array",  description: "The variable model-generated Plan: ordered steps, each { id, description, actor }. actor is 'agent', 'user' or 'either'.", required: true,
       items: { type: "object", required: ["id", "description"],
                       properties: { id: { type: "string" }, description: { type: "string" },
                       actor: { type: "string", enum: ["agent", "user", "either"] } } } },
-    expectation: { type: "string", description: "What you expect the investigation to establish or observe." },
     topic: { type: "string", description: "Short human-readable topic shown in the DevCDP side panel." },
     client_name: { type: "string", description: "Optional AI/MCP client name shown in the side panel." },
     client_id: { type: "string", description: "Optional AI/MCP client or session identifier shown in the side panel." },
+    session_name: { type: "string", description: "AI client's conversation/session name, for example 'Forked Mru build'." },
+    session_id: { type: "string", description: "AI client's conversation/session ID, for example 'Made2Manage-E6'." },
+    session_topic: { type: "string", description: "AI client's human-readable topic or task description." },
   },
   async handler(args, ctx) {
+    if (!String(args.goal || "").trim()) fail(CODES.BAD_ARGS, "goal was empty.", "Provide the predefined Goal field.");
+    if (!String(args.expectation || "").trim()) fail(CODES.BAD_ARGS, "expectation was empty.", "Provide the predefined Expectation field.");
     if (!args.steps.length) fail(CODES.BAD_ARGS, "steps was empty.", "Provide at least one step.");
     const bad = args.steps.filter(s => !s?.id || !s?.description);
     if (bad.length) fail(CODES.BAD_ARGS, `${bad.length} step(s) are missing id or description.`, "Every step needs both.");
 
     ctx.session.active = true;
     ctx.session.goal = args.goal;
-    ctx.session.expectation = args.expectation || null;
-    ctx.session.topic = args.topic || null;
+    ctx.session.expectation = args.expectation;
+    ctx.session.topic = args.topic || args.session_topic || null;
+    ctx.session.sessionName = args.session_name || null;
+    ctx.session.sessionId = args.session_id || null;
     if (args.client_name) ctx.caller.name = args.client_name;
     if (args.client_id) ctx.caller.id = args.client_id;
+    if (args.session_topic || args.topic) ctx.caller.topic = args.session_topic || args.topic;
     ctx.session.steps = args.steps.map(s => ({ ...s, actor: s.actor || "either", status: "pending", result: null }));
     ctx.session.currentStepIdx = 0;
     ctx.session.pendingAsk = null;
+    ctx.session.tools = [];
     ctx.recordActivity("session_start", { goal: args.goal, stepCount: args.steps.length });
     ctx.conn.setBadge(`session: ${args.goal}`.slice(0, 90), null);
 

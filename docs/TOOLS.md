@@ -876,16 +876,19 @@ Optional. Useful for multi-step reproductions; a single question does not need i
 
 ### `session_start`
 
-Open a debugging session with a goal and an ordered list of steps, so progress is tracked and a failed step can fall back to asking the human. Use it for multi-step reproductions; a single-question investigation does not need it.
+Start the structured DevCDP side-panel session. Always provide the predefined Goal and Expectation fields, then provide the model's variable ordered Plan as steps. Include the AI client's conversation/session name and ID when available, such as 'Forked Mru build' and 'Made2Manage-E6'.
 
 Arguments:
 
   - `goal` · *string* · **required** — What you are trying to find out or prove.
-  - `steps` · *array* · **required** — Ordered steps, each { id, description, actor }. actor is 'agent', 'user' or 'either'.
-  - `expectation` · *string* — What you expect the investigation to establish or observe.
+  - `expectation` · *string* · **required** — Predefined Expectation field: what you expect the investigation to establish or observe.
+  - `steps` · *array* · **required** — The variable model-generated Plan: ordered steps, each { id, description, actor }. actor is 'agent', 'user' or 'either'.
   - `topic` · *string* — Short human-readable topic shown in the DevCDP side panel.
   - `client_name` · *string* — Optional AI/MCP client name shown in the side panel.
   - `client_id` · *string* — Optional AI/MCP client or session identifier shown in the side panel.
+  - `session_name` · *string* — AI client's conversation/session name, for example 'Forked Mru build'.
+  - `session_id` · *string* — AI client's conversation/session ID, for example 'Made2Manage-E6'.
+  - `session_topic` · *string* — AI client's human-readable topic or task description.
 
 *Changes only DevCDP state.*
 

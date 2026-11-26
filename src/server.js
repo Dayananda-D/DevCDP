@@ -143,7 +143,11 @@ export function createServer(overrides = {}) {
         const payload = capResponse(shape(tool, result, args), ctx.cfg.maxResponseBytes, name);
         annotateResponse(payload, ctx, { reconnect, retried });
         ctx.conn.addActivity?.("done", `${name} completed`, `${Date.now() - started}ms`)?.catch?.(() => {});
-        if (isPanelTool(name)) await syncSessionPanel(ctx);
+        if (ctx.session.active || isPanelTool(name)) {
+          ctx.session.tools ||= [];
+          if (!ctx.session.tools.includes(name)) ctx.session.tools.push(name);
+          await syncSessionPanel(ctx);
+        }
         return { payload, media };
       });
 
@@ -156,7 +160,11 @@ export function createServer(overrides = {}) {
       const result = toErrorResult(err);
       // A failure the user cannot see looks exactly like a step still running.
       narrateFailure(ctx, name, err);
-      if (isPanelTool(name)) await syncSessionPanel(ctx);
+      if (ctx.session.active || isPanelTool(name)) {
+        ctx.session.tools ||= [];
+        if (!ctx.session.tools.includes(name)) ctx.session.tools.push(name);
+        await syncSessionPanel(ctx);
+      }
       log.warn("tool", `${name} failed: ${result.code}`, { message: result.message, ms: Date.now() - started });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], isError: true };
     }
