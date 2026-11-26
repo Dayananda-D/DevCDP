@@ -315,6 +315,15 @@ export class Connection {
       this.setBadge(badge, null),
       this.snapshotPreAttach(),
     ]);
+    await this.setSessionPanel(ctx.sessionPanel?.() || {
+      sessionId: ctx.sessionId,
+      sessionNumber: n,
+      clientName: ctx.caller?.name || "MCP client",
+      clientId: ctx.caller?.id || ctx.sessionId,
+      topic: ctx.caller?.topic || "MCP debugging session",
+      status: "working",
+      steps: [],
+    });
     this.preAttach = preAttach;
     this.startKeepalive();
     await this.startWatcher();
@@ -752,6 +761,9 @@ export class Connection {
       activityPanel: ctx.cfg.activityPanel,
       activityPanelOpacity: ctx.cfg.activityPanelOpacity,
       activityPanelMaxEntries: ctx.cfg.activityPanelMaxEntries,
+      callerName: ctx.caller?.name || "",
+      callerId: ctx.caller?.id || "",
+      callerTopic: ctx.caller?.topic || "",
       captureValues: ctx.cfg.captureInputValues,
       ownerTimeoutMs: ctx.cfg.ownerTimeoutMs,
     };
@@ -1042,6 +1054,30 @@ export class Connection {
       await this.evalQuiet(`window.__devcdp && window.__devcdp.clearAsk()`);
       return true;
     } catch (_) { return false; }
+  }
+
+  async setSessionPanel(data = {}) {
+    if (!this.client || !this.ctx.cfg.badge) return false;
+    const safe = {
+      sessionId: data.sessionId || null,
+      sessionNumber: data.sessionNumber || null,
+      clientName: data.clientName || null,
+      clientId: data.clientId || null,
+      topic: data.topic || null,
+      goal: data.goal || null,
+      expectation: data.expectation || null,
+      status: data.status || "working",
+      steps: Array.isArray(data.steps) ? data.steps.map(step => ({
+        id: step.id || null,
+        description: step.description || null,
+        actor: step.actor || null,
+        status: step.status || "pending",
+        result: step.result || null,
+      })) : [],
+    };
+    return !!(await this.evalQuiet(
+      `window.__devcdp && window.__devcdp.setSessionPanel && window.__devcdp.setSessionPanel(${JSON.stringify(safe)})`,
+    ));
   }
 
   // ── pre-attach history (OBS-1) ────────────────────────────────────────────

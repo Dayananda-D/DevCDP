@@ -58,8 +58,12 @@ defineTool({
     goal:  { type: "string", description: "What you are trying to find out or prove.", required: true },
     steps: { type: "array",  description: "Ordered steps, each { id, description, actor }. actor is 'agent', 'user' or 'either'.", required: true,
       items: { type: "object", required: ["id", "description"],
-        properties: { id: { type: "string" }, description: { type: "string" },
+                      properties: { id: { type: "string" }, description: { type: "string" },
                       actor: { type: "string", enum: ["agent", "user", "either"] } } } },
+    expectation: { type: "string", description: "What you expect the investigation to establish or observe." },
+    topic: { type: "string", description: "Short human-readable topic shown in the DevCDP side panel." },
+    client_name: { type: "string", description: "Optional AI/MCP client name shown in the side panel." },
+    client_id: { type: "string", description: "Optional AI/MCP client or session identifier shown in the side panel." },
   },
   async handler(args, ctx) {
     if (!args.steps.length) fail(CODES.BAD_ARGS, "steps was empty.", "Provide at least one step.");
@@ -68,6 +72,10 @@ defineTool({
 
     ctx.session.active = true;
     ctx.session.goal = args.goal;
+    ctx.session.expectation = args.expectation || null;
+    ctx.session.topic = args.topic || null;
+    if (args.client_name) ctx.caller.name = args.client_name;
+    if (args.client_id) ctx.caller.id = args.client_id;
     ctx.session.steps = args.steps.map(s => ({ ...s, actor: s.actor || "either", status: "pending", result: null }));
     ctx.session.currentStepIdx = 0;
     ctx.session.pendingAsk = null;
