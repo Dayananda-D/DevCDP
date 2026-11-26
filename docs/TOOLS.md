@@ -4,6 +4,7 @@
 
 81 tools. Every one is callable by name over MCP; the arguments below are exactly what the
 server validates, with the defaults it applies.
+Every tool also accepts optional coordination metadata: `agent_id`, `request_id`, and `lease_id`; these are omitted from individual schemas to keep the tool surface compact.
 
 ## Contents
 
@@ -19,6 +20,7 @@ server validates, with the defaults it applies.
 - [Understanding an unfamiliar app](#understanding-an-unfamiliar-app)
 - [Working with a human](#working-with-a-human)
 - [Session bookkeeping](#session-bookkeeping)
+- [Multi-agent coordination](#multi-agent-coordination)
 - [Learned memory](#learned-memory)
 
 ## Getting oriented
@@ -381,7 +383,7 @@ Arguments:
 
 ### `ui_type`
 
-Type into a field one character at a time with real key events, through the same input pipeline a person's keyboard uses — so the field's own rules apply: maxlength truncates, a keypress guard rejects what it rejects, and a mask reformats as it goes. This is the tool for reproducing user behaviour, and for anything reacting per keystroke: search-as-you-type, autocomplete, validation-on-key. Slower than ui_fill by design. Note that typing leaves the field focused and `change` fires on blur, so pass submit:true (or press Tab) when the application validates on change.
+Type into a field one character at a time with real key events, through the same input pipeline a person's keyboard uses — so the field's own rules apply: maxlength truncates, a keypress guard rejects what it rejects, and a mask reformats as it goes. This is the tool for reproducing user behaviour, and for anything reacting per keystroke: search-as-you-type, autocomplete, validation-on-key. Slower than ui_fill by design. Set fast:true for ordinary fields to insert the whole string in one CDP call; fast mode does not reproduce per-key handlers. Note that typing leaves the field focused and `change` fires on blur, so pass submit:true (or press Tab) when the application validates on change.
 
 Arguments:
 
@@ -396,6 +398,7 @@ Arguments:
   - `text_to_type` · *string* · **required** — Characters to type.
   - `clear_first` · *boolean* · default `true` — Select all and delete before typing.
   - `delay_ms` · *number* · default `12` — Pause between keystrokes. Raise it if the field drops characters.
+  - `fast` · *boolean* · default `false` — Insert all text in one CDP operation. Faster, but skips per-keystroke handlers; default false.
   - `submit` · *boolean* · default `false` — Press Enter afterwards.
 
 *Changes page or app state.*
@@ -948,6 +951,10 @@ Close the session and return a summary. Does not detach — call devtools_discon
 *No arguments.*
 
 *Changes only DevCDP state; works without an attached tab.*
+
+## Multi-agent coordination
+
+Register parallel workers by identity. Read-only calls may overlap; page and session mutations are serialized, and non-default agents must hold the action lease.
 
 ### `session_agent_register`
 
