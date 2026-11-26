@@ -879,6 +879,10 @@ Arguments:
 
   - `goal` · *string* · **required** — What you are trying to find out or prove.
   - `steps` · *array* · **required** — Ordered steps, each { id, description, actor }. actor is 'agent', 'user' or 'either'.
+  - `expectation` · *string* — What you expect the investigation to establish or observe.
+  - `topic` · *string* — Short human-readable topic shown in the DevCDP side panel.
+  - `client_name` · *string* — Optional AI/MCP client name shown in the side panel.
+  - `client_id` · *string* — Optional AI/MCP client or session identifier shown in the side panel.
 
 *Changes only DevCDP state.*
 

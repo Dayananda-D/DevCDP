@@ -43,6 +43,16 @@ function withDeadline(promise, ms, toolName) {
   });
   return Promise.race([promise, guard]).finally(() => clearTimeout(timer));
 }
+
+function syncSessionPanel(ctx) {
+  const update = ctx.conn?.setSessionPanel?.(ctx.sessionPanel?.());
+  return update && typeof update.catch === "function" ? update.catch(() => {}) : Promise.resolve();
+}
+
+function isPanelTool(name) {
+  return name === "notify_user" || name === "session_start" || name === "session_step_done"
+    || name === "session_step_failed" || name === "session_ask_user" || name === "session_end";
+}
 import {
   listTools, getTool, resolveArgs, shape, capResponse, assertRegistryHealthy,
 } from "./core/tools.js";
@@ -85,6 +95,12 @@ export function createServer(overrides = {}) {
     const started = Date.now();
 
     try {
+      const version = server.getClientVersion?.();
+      if (version) {
+        ctx.caller.name = ctx.caller.name || version.name || "";
+        ctx.caller.id = ctx.caller.id || version.version || "";
+        ctx.caller.topic = ctx.caller.topic || version.name || "";
+      }
       const tool = getTool(name);
       if (!tool) {
         throw new DevCdpError(CODES.BAD_ARGS, `Unknown tool "${name}".`,
@@ -127,6 +143,7 @@ export function createServer(overrides = {}) {
         const payload = capResponse(shape(tool, result, args), ctx.cfg.maxResponseBytes, name);
         annotateResponse(payload, ctx, { reconnect, retried });
         ctx.conn.addActivity?.("done", `${name} completed`, `${Date.now() - started}ms`)?.catch?.(() => {});
+        if (isPanelTool(name)) await syncSessionPanel(ctx);
         return { payload, media };
       });
 
@@ -139,6 +156,7 @@ export function createServer(overrides = {}) {
       const result = toErrorResult(err);
       // A failure the user cannot see looks exactly like a step still running.
       narrateFailure(ctx, name, err);
+      if (isPanelTool(name)) await syncSessionPanel(ctx);
       log.warn("tool", `${name} failed: ${result.code}`, { message: result.message, ms: Date.now() - started });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], isError: true };
     }

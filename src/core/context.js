@@ -21,6 +21,11 @@ export function createContext(overrides = {}) {
     cfg,
     sessionId,
     startedAt: new Date().toISOString(),
+    caller: {
+      name: overrides.callerName || "",
+      id: overrides.callerId || "",
+      topic: overrides.callerTopic || "",
+    },
 
     registry: new SessionRegistry(sessionId),
     coordinator: new SessionCoordinator({ maxAgents: cfg.maxAgentsPerSession }),
@@ -69,6 +74,8 @@ export function createContext(overrides = {}) {
       currentStepIdx: -1,
       pendingAsk: null,     // { instruction, waitFor, captured, askedAt }
       userHasControl: false,
+      expectation: null,
+      topic: null,
     },
 
     // ── network waiters (event driven) ──
@@ -102,6 +109,32 @@ export function createContext(overrides = {}) {
   };
 
   ctx.consoleBuf = () => ctx.console.for(ctx.conn?.targetId);
+
+  // Only intentional session copy is sent to the browser panel. In particular,
+  // never pass tool arguments, selectors, URLs, timings, or raw activity here.
+  ctx.sessionPanel = () => {
+    const s = ctx.session;
+    const steps = (s.steps || []).map(step => ({
+      id: step.id,
+      description: step.description,
+      actor: step.actor,
+      status: step.status,
+      result: step.result || null,
+    }));
+    const done = steps.filter(step => step.status === "done").length;
+    return {
+      sessionId: ctx.sessionId,
+      sessionNumber: ctx.registry.sessionNumber || null,
+      clientName: ctx.caller.name || "MCP client",
+      clientId: ctx.caller.id || ctx.sessionId,
+      topic: ctx.caller.topic || s.topic || "MCP debugging session",
+      goal: s.goal || null,
+      expectation: s.pendingAsk?.instruction || s.expectation || null,
+      status: s.pendingAsk ? "ask" : (steps.some(step => step.status === "blocked") ? "err"
+        : (!s.active && steps.length && done === steps.length ? "done" : "working")),
+      steps,
+    };
+  };
 
   return ctx;
 }

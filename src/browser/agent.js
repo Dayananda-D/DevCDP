@@ -55,6 +55,12 @@ export function buildAgentSource(cfg) {
     toastMs: 3500,
     toastOpacity: 0.78,
     toastMaxVisible: 3,
+    activityPanel: true,
+    activityPanelOpacity: 1,
+    activityPanelMaxEntries: 80,
+    callerName: "",
+    callerId: "",
+    callerTopic: "",
     dialogSelectors: [],
     testAttributes: ["data-testid", "data-test-id", "data-test", "data-qa", "data-cy", "data-automation-id"],
     captureValues: false,
@@ -75,6 +81,7 @@ if (!S) {
 }
 S.sessionId = CFG.sessionId;
 S.label     = CFG.label;
+S.panelState = S.panelState || { steps: [], thoughts: [] };
 
 function send(type, detail) {
   try {
@@ -460,6 +467,7 @@ var ALIGN = { tr: "flex-end", br: "flex-end", tl: "flex-start", bl: "flex-start"
 // single-page app reloading would otherwise snap the overlay back over whatever the
 // user moved it away from.
 var POS_KEY = "__devcdp_overlay_pos";
+var PANEL_KEY = "__devcdp_panel_collapsed_";
 
 // Two colours, each meaning exactly one thing: blue means DevCDP is working, green
 // means it is your turn.
@@ -571,14 +579,11 @@ function buildChrome() {
     ".btn{display:inline-block;pointer-events:auto;cursor:pointer;background:" + HANDOVER + ";color:#06240f;" +
       "border-radius:6px;padding:4px 12px;font-weight:700;font-size:11px;user-select:none}" +
     ".btn:hover{filter:brightness(1.12)}" +
-    ".activity-panel{position:fixed;top:50%;right:12px;transform:translateY(-50%);width:280px;max-width:calc(100vw - 28px);max-height:70vh;font:12px/1.4 -apple-system,Segoe UI,Roboto,sans-serif;color:#f1f5f9;background:rgba(70,70,70," + (CFG.activityPanelOpacity == null ? .2 : CFG.activityPanelOpacity) + ");-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid #ffffff42;border-radius:10px;box-shadow:0 8px 30px #0006;pointer-events:none;display:" + (CFG.activityPanel === false ? "none" : "block") + ";z-index:2}" +
-    ".activity-panel.collapsed{width:34px;height:34px;max-height:34px;overflow:hidden}" +
-    ".activity-head{display:flex;align-items:center;gap:7px;padding:8px 9px;border-bottom:1px solid #ffffff2b;font-weight:700}" +
-    ".activity-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}" +
-    ".activity-toggle{pointer-events:auto;cursor:pointer;border:0;border-radius:5px;background:#ffffff22;color:#fff;padding:2px 6px;font-size:13px;line-height:18px}" +
-    ".activity-list{padding:6px 8px 8px;overflow:auto;max-height:calc(70vh - 44px)}" +
-    ".activity-item{padding:5px 0;border-bottom:1px solid #ffffff1c;word-break:break-word}" +
-    ".activity-item:last-child{border-bottom:0}.activity-kind{color:#b9c7d8;font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-right:5px}.activity-time{float:right;color:#ffffff88;font-size:10px}" +
+    ".activity-panel{position:fixed;top:16px;right:12px;bottom:16px;width:320px;max-width:calc(100vw - 28px);font:12px/1.4 -apple-system,Segoe UI,Roboto,sans-serif;color:#172033;background:#f8fafc;border:1px solid #aebdd0;border-radius:10px;box-shadow:0 8px 30px rgba(31,48,71,.22);pointer-events:auto;display:" + (CFG.activityPanel === false ? "none" : "flex") + ";flex-direction:column;z-index:2;overflow:hidden}" +
+    ".activity-panel.collapsed{width:34px;top:16px;bottom:16px;height:auto;max-height:none}" +
+    ".activity-head{flex:0 0 auto;padding:16px;border-bottom:1px solid #d9e2ec;background:#eef4fa}" +
+    ".activity-headbar{display:flex;align-items:center;gap:7px}.activity-name{font-size:13px;font-weight:600;color:#16243a}.activity-chip{font-size:10px;font-weight:600;letter-spacing:.03em;background:#3b5bdb;color:#fff;padding:4px 7px;border-radius:5px}.activity-status{font-size:10px;font-weight:600;padding:4px 7px;border-radius:5px;background:#dce8ff;color:#2448a5}.activity-status.done{background:#e7edf3;color:#52657a}.activity-status.ask{background:#d9f4df;color:#145b2a}.activity-status.err{background:#f9dfdf;color:#8c2424}.activity-toggle{flex:0 0 auto;pointer-events:auto;cursor:pointer;border:1px solid #b7c5d4;border-radius:5px;background:#fff;color:#43566d;padding:3px 6px;font-size:15px;font-weight:700;line-height:16px}.activity-caller{margin-top:12px}.activity-client{font-size:10px;line-height:14px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#52657a}.activity-topic{margin:3px 0 0;font-size:14px;line-height:19px;font-weight:600;color:#17243a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.activity-id{margin-top:4px;font:11px/14px ui-monospace,SFMono-Regular,Consolas,monospace;color:#718197;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+    ".activity-body{flex:1;min-height:0;overflow:auto;padding:16px}.activity-section{margin:0 0 24px}.activity-label{margin:0 0 7px;font-size:10px;line-height:14px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:#63758a}.activity-goal{margin:0;font-size:13px;line-height:18px;color:#172033}.activity-expect{margin:10px 0 0;padding:9px 10px;background:#edf3fa;border-left:2px solid #8ea6ff;border-radius:7px;color:#52657a;font-size:12px;line-height:17px}.activity-planhead{display:flex;justify-content:space-between;align-items:center}.activity-value{font:11px/14px ui-monospace,SFMono-Regular,Consolas,monospace;color:#718197}.activity-progress{display:flex;gap:3px;margin:8px 0 10px}.activity-seg{height:3px;flex:1;background:#dbe3ec;border-radius:2px}.activity-seg.done{background:#92a7bf}.activity-seg.now{background:#8ea6ff}.activity-seg.ask{background:#63c879}.activity-steps{margin:0;padding:0;list-style:none}.activity-step{display:flex;gap:8px;padding:8px;border-radius:7px;position:relative}.activity-step.now{background:#e7efff}.activity-step.ask{background:#e8f7ea}.activity-step.err{background:#f9eaea}.activity-mark{flex:0 0 16px;width:16px;height:16px;color:#8496ab;display:grid;place-items:center}.activity-mark svg{width:16px;height:16px}.activity-step.now .activity-mark{color:#5476df}.activity-step.ask .activity-mark{color:#269b46}.activity-step.done .activity-mark{color:#8496ab}.activity-step.err .activity-mark{color:#c94343}.activity-steptext{font-size:13px;line-height:18px;color:#223149}.activity-step.done .activity-steptext{text-decoration:line-through;color:#8b9cb3}.activity-note{margin:3px 0 0;font-size:12px;line-height:17px;color:#60738a}.activity-thought{margin:8px 0 0;padding-top:8px;border-top:1px solid #d9e2ec;font-size:12px;line-height:17px;color:#52657a}.activity-tag{margin-left:auto;align-self:flex-start;font-size:10px;line-height:14px;padding:3px 5px;border-radius:4px;background:#dce8ff;color:#2448a5}.activity-step.ask .activity-tag{background:#d9f4df;color:#145b2a}.activity-foot{flex:0 0 auto;display:flex;justify-content:space-between;padding:12px 16px;border-top:1px solid #d9e2ec;background:#eef4fa;color:#63758a;font-size:11px}.activity-panel.collapsed .activity-head{height:100%;padding:8px 7px;display:flex;align-items:flex-start;justify-content:center}.activity-panel.collapsed .activity-headbar{display:flex;flex-direction:column;gap:10px}.activity-panel.collapsed .activity-name,.activity-panel.collapsed .activity-status,.activity-panel.collapsed .activity-caller,.activity-panel.collapsed .activity-body,.activity-panel.collapsed .activity-foot{display:none}.activity-panel.collapsed .activity-chip{writing-mode:vertical-rl}.activity-panel.collapsed .activity-toggle{margin:0}" +
     // activity cursor: a ring that follows pointer activity, and a ripple on each
     // click, so it is visible where something is being interacted with.
     ".cur{position:fixed;left:0;top:0;width:20px;height:20px;margin:-10px 0 0 -10px;border:2px solid " + accent +
@@ -603,7 +608,7 @@ function buildChrome() {
       '<div class="toasts" id="toasts"></div>' +
       '<div class="panel" id="panel"><div class="q" id="q"></div><div class="btn" id="btn">I\\u2019ve done it \\u2713</div></div>' +
     '</div>' +
-    '<div class="activity-panel" id="activity-panel"><div class="activity-head"><span class="activity-title" id="activity-title"></span><button class="activity-toggle" id="activity-toggle" aria-label="Collapse activity panel">−</button></div><div class="activity-list" id="activity-list"></div></div>' +
+    '<aside class="activity-panel" id="activity-panel" aria-label="DevCDP session activity"><header class="activity-head"><div class="activity-headbar"><button class="activity-toggle" id="activity-toggle" aria-label="Collapse DevCDP panel">&lt;</button><span class="activity-name">DevCDP</span><span class="activity-chip" id="activity-session"></span><span class="activity-status" id="activity-status">Working</span></div><div class="activity-caller"><div class="activity-client" id="activity-client"></div><div class="activity-topic" id="activity-topic"></div><div class="activity-id" id="activity-id"></div></div></header><div class="activity-body" id="activity-body"><section class="activity-section"><h3 class="activity-label">Goal</h3><p class="activity-goal" id="activity-goal"></p><p class="activity-expect" id="activity-expect"><b>Expect</b> <span></span></p></section><section class="activity-section"><div class="activity-planhead"><h3 class="activity-label">Plan</h3><span class="activity-value" id="activity-count"></span></div><div class="activity-progress" id="activity-progress"></div><ol class="activity-steps" id="activity-steps"></ol></section></div><footer class="activity-foot"><span>Take over any time</span><span>Ctrl+Shift+D</span></footer></aside>' +
     '<div class="cur" id="cur"></div>' +
     '<div class="tip" id="tip"></div>';
 
@@ -857,12 +862,28 @@ function mountChrome() {
       var p = part("activity-panel");
       if (!p) return;
       var collapsed = p.classList.toggle("collapsed");
-      toggle.textContent = collapsed ? "+" : "−";
-      toggle.setAttribute("aria-label", collapsed ? "Expand activity panel" : "Collapse activity panel");
+      toggle.textContent = collapsed ? ">" : "<";
+      toggle.setAttribute("aria-label", collapsed ? "Expand DevCDP panel" : "Collapse DevCDP panel");
+      try { localStorage.setItem(PANEL_KEY + (CFG.sessionId || "default"), collapsed ? "1" : "0"); } catch (_) {}
     }, true);
   }
-  var activityTitle = part("activity-title");
-  if (activityTitle) activityTitle.textContent = (CFG.label || "DevCDP") + " activity";
+  var sessionChip = part("activity-session");
+  if (sessionChip) sessionChip.textContent = "session " + String(CFG.sessionNumber || "?");
+  var client = part("activity-client");
+  if (client) client.textContent = CFG.callerName || "MCP client";
+  var callerId = part("activity-id");
+  if (callerId) callerId.textContent = CFG.callerId || CFG.sessionId || "session id unavailable";
+  var activityPanel = part("activity-panel");
+  if (activityPanel && !activityPanel.__restored) {
+    activityPanel.__restored = true;
+    var collapsed = false;
+    try { collapsed = localStorage.getItem(PANEL_KEY + (CFG.sessionId || "default")) === "1"; } catch (_) {}
+    activityPanel.classList.toggle("collapsed", collapsed);
+    if (toggle) {
+      toggle.textContent = collapsed ? ">" : "<";
+      toggle.setAttribute("aria-label", collapsed ? "Expand DevCDP panel" : "Collapse DevCDP panel");
+    }
+  }
   if (S.pendingAsk) applyAsk(S.pendingAsk);
   return host;
 }
@@ -913,21 +934,47 @@ function clearToasts() {
   if (!box) return;
   while (box.firstChild) box.removeChild(box.firstChild);
 }
-function addActivity(kind, text, detail) {
-  if (CFG.activityPanel === false || !text) return false;
+function markSvg(kind) {
+  if (kind === "done") return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+  if (kind === "err") return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
+  if (kind === "ask") return '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.2v9.6a.6.6 0 0 0 .92.5l7.3-4.8a.6.6 0 0 0 0-1L5.92 2.7A.6.6 0 0 0 5 3.2z"/></svg>';
+  if (kind === "now") return '<span style="display:block;width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 0 4px #8ea6ff55"></span>';
+  return '<span style="display:block;width:10px;height:10px;border:1.5px solid currentColor;border-radius:50%"></span>';
+}
+function addActivity() { return false; }
+function renderPanel(data) {
+  if (CFG.activityPanel === false) return false;
   mountChrome();
-  var list = part("activity-list");
-  if (!list) return false;
-  var item = document.createElement("div"); item.className = "activity-item";
-  var k = document.createElement("span"); k.className = "activity-kind"; k.textContent = kind || "update";
-  var tm = document.createElement("span"); tm.className = "activity-time"; tm.textContent = new Date().toLocaleTimeString();
-  var msg = document.createElement("span"); msg.textContent = String(text).slice(0, 220);
-  item.appendChild(k); item.appendChild(tm); item.appendChild(msg);
-  if (detail) { var d = document.createElement("div"); d.style.cssText = "color:#ffffffaa;font-size:11px;margin-top:2px"; d.textContent = String(detail).slice(0, 300); item.appendChild(d); }
-  list.appendChild(item);
-  var max = Math.max(1, Number(CFG.activityPanelMaxEntries || 80));
-  while (list.children.length > max) list.removeChild(list.firstChild);
-  list.scrollTop = list.scrollHeight;
+  data = data || {};
+  var topic = part("activity-topic"); if (topic) topic.textContent = data.topic || "MCP debugging session";
+  var client = part("activity-client"); if (client) client.textContent = data.clientName || CFG.callerName || "MCP client";
+  var id = part("activity-id"); if (id) id.textContent = data.clientId || CFG.callerId || CFG.sessionId || "session id unavailable";
+  var goal = part("activity-goal"); if (goal) goal.textContent = data.goal || "No goal has been set yet.";
+  var expect = part("activity-expect"); if (expect) expect.querySelector("span").textContent = data.expectation || "Watching the browser for the next confirmed state.";
+  var steps = Array.isArray(data.steps) ? data.steps : [];
+  var done = steps.filter(function (x) { return x && x.status === "done"; }).length;
+  var current = steps.findIndex(function (x) { return x && x.status !== "done" && x.status !== "blocked"; });
+  var count = part("activity-count"); if (count) count.textContent = done + " of " + steps.length + " done";
+  var progress = part("activity-progress");
+  if (progress) { progress.textContent = ""; steps.forEach(function (st, i) { var seg = document.createElement("span"); seg.className = "activity-seg" + (st.status === "done" ? " done" : st.status === "blocked" ? " ask" : i === current ? " now" : ""); progress.appendChild(seg); }); }
+  var list = part("activity-steps");
+  if (list) {
+    list.textContent = "";
+    steps.forEach(function (st, i) {
+      var state = st.status === "done" ? "done" : st.status === "blocked" ? "err" : i === current ? "now" : "later";
+      var li = document.createElement("li"); li.className = "activity-step " + state;
+      var mark = document.createElement("span"); mark.className = "activity-mark"; mark.innerHTML = markSvg(state); li.appendChild(mark);
+      var body = document.createElement("div");
+      var text = document.createElement("div"); text.className = "activity-steptext"; text.textContent = st.description || st.id || "Untitled step"; body.appendChild(text);
+      if (st.result) { var note = document.createElement("p"); note.className = "activity-note"; note.textContent = st.result; body.appendChild(note); }
+      if (st.thought) { var thought = document.createElement("p"); thought.className = "activity-thought"; thought.textContent = st.thought; body.appendChild(thought); }
+      li.appendChild(body);
+      if (state === "now" || state === "err") { var tag = document.createElement("span"); tag.className = "activity-tag"; tag.textContent = state === "err" ? "Blocked" : "Now"; li.appendChild(tag); }
+      list.appendChild(li);
+    });
+  }
+  var status = part("activity-status");
+  if (status) { var label = data.status === "ask" ? "Your turn" : data.status === "done" ? "Done" : data.status === "err" ? "Blocked" : "Working"; status.textContent = label; status.className = "activity-status" + (data.status ? " " + data.status : ""); }
   return true;
 }
 
@@ -984,7 +1031,8 @@ function applyAsk(ask) {
 }
 
 S.setStatus = function (text, kind) { guard("setStatus", function () { mountChrome(); applyStatus({ text: text, kind: kind }); }); return true; };
-S.addActivity = function (kind, text, detail) { guard("activity", function () { addActivity(kind, text, detail); }); return true; };
+S.addActivity = function () { return false; };
+S.setSessionPanel = function (data) { guard("sessionPanel", function () { S.panelState = data || {}; renderPanel(S.panelState); }); return true; };
 S.ask       = function (instruction) { guard("ask", function () { mountChrome(); applyAsk({ instruction: instruction }); }); return true; };
 S.clearAsk  = function () { guard("clearAsk", function () { applyAsk(null); }); return true; };
 
@@ -992,7 +1040,8 @@ S.clearAsk  = function () { guard("clearAsk", function () { applyAsk(null); }); 
 S.isCollapsed = function () {
   var box = part("toasts"), p = part("panel");
   var noToasts = !box || box.children.length === 0;
-  return !!(noToasts && p && !p.classList.contains("show"));
+  var side = part("activity-panel");
+  return !!(noToasts && p && !p.classList.contains("show") && side && side.classList.contains("collapsed"));
 };
 
 S.collapse = function () {
@@ -1000,6 +1049,13 @@ S.collapse = function () {
     if (S.pendingAsk) return;
     clearToasts();
     var c = part("chip"); if (c) c.classList.add("dim");
+    var side = part("activity-panel");
+    var toggle = part("activity-toggle");
+    if (side && !side.classList.contains("collapsed")) {
+      side.classList.add("collapsed");
+      if (toggle) { toggle.textContent = "+"; toggle.setAttribute("aria-label", "Expand DevCDP panel"); }
+      try { localStorage.setItem(PANEL_KEY + (CFG.sessionId || "default"), "1"); } catch (_) {}
+    }
   });
   return true;
 };
@@ -1007,13 +1063,14 @@ S.collapse = function () {
 /** What we currently draw over the page — used by the footprint test. */
 S.footprint = function () {
   var out = { edgeBorderPx: 1, occluding: [] };
-  ["chip", "toasts", "panel"].forEach(function (id) {
+  ["chip", "toasts", "panel", "activity-panel"].forEach(function (id) {
     var el = part(id);
     if (!el) return;
     if (id === "toasts" && el.children.length === 0) return;
     if (id === "panel" && !el.classList.contains("show")) return;
     var r = el.getBoundingClientRect();
     if (r.width < 1 || r.height < 1) return;
+    if (id === "activity-panel" && el.classList.contains("collapsed")) return;
     var entry = { part: id === "toasts" ? "toast" : id,
       w: Math.round(r.width), h: Math.round(r.height), area: Math.round(r.width * r.height) };
     if (id === "toasts") entry.messages = el.children.length;
