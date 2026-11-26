@@ -749,6 +749,9 @@ export class Connection {
       toastMs: ctx.cfg.toastMs,
       toastOpacity: ctx.cfg.toastOpacity,
       toastMaxVisible: ctx.cfg.toastMaxVisible,
+      activityPanel: ctx.cfg.activityPanel,
+      activityPanelOpacity: ctx.cfg.activityPanelOpacity,
+      activityPanelMaxEntries: ctx.cfg.activityPanelMaxEntries,
       captureValues: ctx.cfg.captureInputValues,
       ownerTimeoutMs: ctx.cfg.ownerTimeoutMs,
     };
@@ -937,6 +940,15 @@ export class Connection {
     if (!this.client || !this.ctx.cfg.badge) return false;
     try {
       await this.evalQuiet(`window.__devcdp && window.__devcdp.setStatus(${JSON.stringify(String(text ?? ""))}, ${JSON.stringify(kind || null)})`);
+      return true;
+    } catch (_) { return false; }
+  }
+
+  /** Add durable model/tool commentary to the right-side in-page activity panel. */
+  async addActivity(kind, text, detail) {
+    if (!this.client || !this.ctx.cfg.badge) return false;
+    try {
+      await this.evalQuiet(`window.__devcdp && window.__devcdp.addActivity && window.__devcdp.addActivity(${JSON.stringify(String(kind || "update"))}, ${JSON.stringify(String(text || ""))}, ${JSON.stringify(detail == null ? "" : String(detail))})`);
       return true;
     } catch (_) { return false; }
   }

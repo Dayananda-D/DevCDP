@@ -51,7 +51,7 @@ export function buildAgentSource(cfg) {
     showCursor: true,
     edgePulse: true,
     toasts: true,
-    toastCorner: "tr",          // messages keep their own corner; the chip is dragged
+    toastCorner: "bc",          // messages keep their own corner; the chip is dragged
     toastMs: 3500,
     toastOpacity: 0.78,
     toastMaxVisible: 3,
@@ -555,9 +555,12 @@ function buildChrome() {
     ".toast{font:12px/1.4 -apple-system,Segoe UI,Roboto,sans-serif;color:#eaf3ff;" +
       "background:rgba(11,26,42," + CFG.toastOpacity + ");-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);" +
       "border:1px solid " + accent + "aa;border-left:2px solid " + accent + ";border-radius:7px;padding:5px 9px;" +
-      "box-shadow:0 4px 14px rgba(0,0,0,.26);pointer-events:none;opacity:0;transform:translateY(-3px);" +
+      "box-shadow:0 4px 14px rgba(0,0,0,.26);pointer-events:none;opacity:0;transform:translateY(3px);" +
       "transition:opacity .18s ease,transform .18s ease}" +
     ".toast.show{opacity:1;transform:translateY(0)}" +
+    ".toast-body{display:inline-block;padding-right:16px}" +
+    ".toast-close{position:absolute;top:2px;right:4px;border:0;background:none;color:#fff9;font-size:14px;line-height:14px;padding:0;pointer-events:auto;cursor:pointer}" +
+    ".toast-close:hover{color:#fff}" +
     ".toast.err{border-color:#f0564a;border-left-color:#f0564a}" +
     ".toast.ask{border-color:" + HANDOVER + ";border-left-color:" + HANDOVER + "}" +
     ".panel{font:12px/1.45 -apple-system,Segoe UI,Roboto,sans-serif;background:#0f2438;color:#d7ffe4;" +
@@ -568,6 +571,14 @@ function buildChrome() {
     ".btn{display:inline-block;pointer-events:auto;cursor:pointer;background:" + HANDOVER + ";color:#06240f;" +
       "border-radius:6px;padding:4px 12px;font-weight:700;font-size:11px;user-select:none}" +
     ".btn:hover{filter:brightness(1.12)}" +
+    ".activity-panel{position:fixed;top:50%;right:12px;transform:translateY(-50%);width:280px;max-width:calc(100vw - 28px);max-height:70vh;font:12px/1.4 -apple-system,Segoe UI,Roboto,sans-serif;color:#f1f5f9;background:rgba(70,70,70," + (CFG.activityPanelOpacity == null ? .2 : CFG.activityPanelOpacity) + ");-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid #ffffff42;border-radius:10px;box-shadow:0 8px 30px #0006;pointer-events:none;display:" + (CFG.activityPanel === false ? "none" : "block") + ";z-index:2}" +
+    ".activity-panel.collapsed{width:34px;height:34px;max-height:34px;overflow:hidden}" +
+    ".activity-head{display:flex;align-items:center;gap:7px;padding:8px 9px;border-bottom:1px solid #ffffff2b;font-weight:700}" +
+    ".activity-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}" +
+    ".activity-toggle{pointer-events:auto;cursor:pointer;border:0;border-radius:5px;background:#ffffff22;color:#fff;padding:2px 6px;font-size:13px;line-height:18px}" +
+    ".activity-list{padding:6px 8px 8px;overflow:auto;max-height:calc(70vh - 44px)}" +
+    ".activity-item{padding:5px 0;border-bottom:1px solid #ffffff1c;word-break:break-word}" +
+    ".activity-item:last-child{border-bottom:0}.activity-kind{color:#b9c7d8;font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-right:5px}.activity-time{float:right;color:#ffffff88;font-size:10px}" +
     // activity cursor: a ring that follows pointer activity, and a ripple on each
     // click, so it is visible where something is being interacted with.
     ".cur{position:fixed;left:0;top:0;width:20px;height:20px;margin:-10px 0 0 -10px;border:2px solid " + accent +
@@ -592,6 +603,7 @@ function buildChrome() {
       '<div class="toasts" id="toasts"></div>' +
       '<div class="panel" id="panel"><div class="q" id="q"></div><div class="btn" id="btn">I\\u2019ve done it \\u2713</div></div>' +
     '</div>' +
+    '<div class="activity-panel" id="activity-panel"><div class="activity-head"><span class="activity-title" id="activity-title"></span><button class="activity-toggle" id="activity-toggle" aria-label="Collapse activity panel">−</button></div><div class="activity-list" id="activity-list"></div></div>' +
     '<div class="cur" id="cur"></div>' +
     '<div class="tip" id="tip"></div>';
 
@@ -837,6 +849,20 @@ function mountChrome() {
       applyAsk(null);
     }, true);
   }
+  var toggle = part("activity-toggle");
+  if (toggle && !toggle.__wired) {
+    toggle.__wired = true;
+    toggle.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var p = part("activity-panel");
+      if (!p) return;
+      var collapsed = p.classList.toggle("collapsed");
+      toggle.textContent = collapsed ? "+" : "−";
+      toggle.setAttribute("aria-label", collapsed ? "Expand activity panel" : "Collapse activity panel");
+    }, true);
+  }
+  var activityTitle = part("activity-title");
+  if (activityTitle) activityTitle.textContent = (CFG.label || "DevCDP") + " activity";
   if (S.pendingAsk) applyAsk(S.pendingAsk);
   return host;
 }
@@ -853,7 +879,16 @@ function pushToast(text, kind) {
 
   var el = document.createElement("div");
   el.className = "toast" + (kind === "err" ? " err" : kind === "ask" ? " ask" : "");
-  el.textContent = text;
+  el.style.position = "relative";
+  var body = document.createElement("span"); body.className = "toast-body"; body.textContent = text;
+  el.appendChild(body);
+  var close = document.createElement("button");
+  close.className = "toast-close"; close.type = "button"; close.setAttribute("aria-label", "Dismiss notification"); close.textContent = "×";
+  close.addEventListener("click", function (e) {
+    e.stopPropagation(); el.classList.remove("show");
+    setTimeout(function () { try { if (el.parentNode) el.parentNode.removeChild(el); } catch (_) {} }, 180);
+  }, true);
+  el.appendChild(close);
   box.appendChild(el);
   // Force a frame so the transition runs rather than snapping in.
   requestAnimationFrame(function () { guard("toastShow", function () { el.classList.add("show"); }); });
@@ -878,6 +913,23 @@ function clearToasts() {
   if (!box) return;
   while (box.firstChild) box.removeChild(box.firstChild);
 }
+function addActivity(kind, text, detail) {
+  if (CFG.activityPanel === false || !text) return false;
+  mountChrome();
+  var list = part("activity-list");
+  if (!list) return false;
+  var item = document.createElement("div"); item.className = "activity-item";
+  var k = document.createElement("span"); k.className = "activity-kind"; k.textContent = kind || "update";
+  var tm = document.createElement("span"); tm.className = "activity-time"; tm.textContent = new Date().toLocaleTimeString();
+  var msg = document.createElement("span"); msg.textContent = String(text).slice(0, 220);
+  item.appendChild(k); item.appendChild(tm); item.appendChild(msg);
+  if (detail) { var d = document.createElement("div"); d.style.cssText = "color:#ffffffaa;font-size:11px;margin-top:2px"; d.textContent = String(detail).slice(0, 300); item.appendChild(d); }
+  list.appendChild(item);
+  var max = Math.max(1, Number(CFG.activityPanelMaxEntries || 80));
+  while (list.children.length > max) list.removeChild(list.firstChild);
+  list.scrollTop = list.scrollHeight;
+  return true;
+}
 
 function applyStatus(st) {
   // A pending question outranks background chatter. Without this, an internal
@@ -894,7 +946,8 @@ function applyStatus(st) {
   // Consecutive identical messages are noise; refresh the existing one instead.
   var box = part("toasts");
   var last = box && box.lastElementChild;
-  if (last && last.textContent === text) return;
+  var lastText = last && last.querySelector && last.querySelector(".toast-body");
+  if (lastText && lastText.textContent === text) return;
 
   pushToast(text, st && st.kind);
   var chip = part("chip");
@@ -931,6 +984,7 @@ function applyAsk(ask) {
 }
 
 S.setStatus = function (text, kind) { guard("setStatus", function () { mountChrome(); applyStatus({ text: text, kind: kind }); }); return true; };
+S.addActivity = function (kind, text, detail) { guard("activity", function () { addActivity(kind, text, detail); }); return true; };
 S.ask       = function (instruction) { guard("ask", function () { mountChrome(); applyAsk({ instruction: instruction }); }); return true; };
 S.clearAsk  = function () { guard("clearAsk", function () { applyAsk(null); }); return true; };
 

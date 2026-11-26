@@ -88,11 +88,14 @@ const DEFAULTS = {
   // because it is a fixed object sitting on the app; messages are a stream that
   // appears and clears itself, and anchoring them to a chip the user has just tidied
   // into a corner would drag the running commentary there with it.
-  toastCorner: "tr",               // tc | bc | tl | tr | bl | br
-  toastPosition: "tr",             // accepted alias of toastCorner, kept in sync
+  toastCorner: "bc",               // tc | bc | tl | tr | bl | br
+  toastPosition: "bc",             // accepted alias of toastCorner, kept in sync
   toastMs: 3500,                   // how long each message lingers before fading
   toastOpacity: 0.78,              // 0..1 — the panel, not the text
   toastMaxVisible: 3,              // older messages fade out as new ones arrive
+  activityPanel: true,             // realtime model/tool commentary panel
+  activityPanelOpacity: 0.20,      // grey panel alpha; approximately 80% transparent
+  activityPanelMaxEntries: 80,
   // The badge shrinks to a status dot when idle, so it is not permanently
   // occupying a corner of the app. It expands on any status change, when the
   // pointer comes near it, and never collapses while it is waiting for the user,
@@ -220,6 +223,9 @@ const ENV_MAP = {
   DEVCDP_TOAST_POSITION:      ["toastPosition",      String],
   DEVCDP_TOAST_MS:            ["toastMs",            Number],
   DEVCDP_TOAST_OPACITY:       ["toastOpacity",       Number],
+  DEVCDP_ACTIVITY_PANEL:      ["activityPanel",      v => v !== "0" && v !== "false"],
+  DEVCDP_ACTIVITY_OPACITY:    ["activityPanelOpacity", Number],
+  DEVCDP_ACTIVITY_MAX_ENTRIES:["activityPanelMaxEntries", Number],
   DEVCDP_CHROME_PROFILE:      ["chromeProfile",      String],
   DEVCDP_CHROME_FLAGS:        ["chromeFlags",        v => v.split(/s+/).filter(Boolean)],
   DEVCDP_EVAL_TIMEOUT_MS:     ["evalTimeoutMs",      Number],
@@ -356,6 +362,8 @@ export function loadConfig(overrides = {}) {
   clamp("toastOpacity", 0.15, 1, DEFAULTS.toastOpacity);
   clamp("toastMs", 500, 60000, DEFAULTS.toastMs);
   clamp("toastMaxVisible", 1, 8, DEFAULTS.toastMaxVisible);
+  clamp("activityPanelOpacity", 0.05, 0.6, DEFAULTS.activityPanelOpacity);
+  clamp("activityPanelMaxEntries", 5, 200, DEFAULTS.activityPanelMaxEntries);
   clamp("evalTimeoutMs", 500, 120000, DEFAULTS.evalTimeoutMs);
   clamp("toolTimeoutMs", 1000, 600000, DEFAULTS.toolTimeoutMs);
   clamp("connectTimeoutMs", 500, 120000, DEFAULTS.connectTimeoutMs);
