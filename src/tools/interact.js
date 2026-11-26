@@ -120,7 +120,9 @@ async function waitActionable(ctx, args, opts = {}) {
     }
 
     if (Date.now() >= deadline) break;
-    await new Promise(r => setTimeout(r, 60));
+    const elapsed = Date.now() - (deadline - (args.timeout_ms ?? 5000));
+    const delay = elapsed < 120 ? 20 : elapsed < 600 ? 50 : 100;
+    await new Promise(r => setTimeout(r, delay));
   }
 
   // Everything below is a failure report. The point of it is that "could not click"
@@ -168,9 +170,11 @@ const describeTarget = args =>
 // report — only the discipline of taking a mark before and reading after.
 
 function markBefore(ctx) {
+  const networkStats = ctx.network.stats?.() || {};
   return {
     console: ctx.consoleBuf().stats().cursor,
     mutations: ctx.mutations.stats().cursor,
+    networkVersion: networkStats.version ?? ctx.network.all?.().length ?? 0,
     requestIds: new Set(ctx.network.all().map(r => r.requestId)),
   };
 }
@@ -180,9 +184,33 @@ function markBefore(ctx) {
  * in console_get_logs / network_get_requests, and pasting it into every action response
  * would cost more context than the snapshot approach this exists to avoid.
  */
-async function consequenceOf(ctx, before, settleMs = 220) {
-  await new Promise(r => setTimeout(r, settleMs));
-
+export async function consequenceOf(ctx, before, settleMs = 220, quietMs = 50) {
+  // Most UI actions finish synchronously. Waiting the full settle window made
+  // every click pay 220ms, even when there was nothing left to observe. Return
+  // after a short quiet period, but keep the old maximum so delayed requests and
+  // renders remain observable. Any new buffer entry resets the quiet timer.
+  const started = Date.now();
+  const console = ctx.consoleBuf();
+  const mutationBuffer = ctx.mutations;
+  const network = ctx.network;
+  const canWait = [console, mutationBuffer, network].every(b => typeof b.waitForChange === "function");
+  if (canWait) {
+    let versions = [console.stats().version, mutationBuffer.stats().version, network.stats().version];
+    while (Date.now() - started < settleMs) {
+      const remaining = settleMs - (Date.now() - started);
+      const changed = await Promise.race([
+        console.waitForChange(versions[0], remaining),
+        mutationBuffer.waitForChange(versions[1], remaining),
+        network.waitForChange(versions[2], remaining),
+        new Promise(resolve => { const t = setTimeout(() => resolve(false), Math.min(quietMs, remaining)); t.unref?.(); }),
+      ]);
+      if (!changed) break;
+      versions = [console.stats().version, mutationBuffer.stats().version, network.stats().version];
+    }
+  } else {
+    // Compatibility path for lightweight test doubles and older embedders.
+    await new Promise(r => setTimeout(r, Math.min(quietMs, settleMs)));
+  }
   const logs = ctx.consoleBuf().since(before.console);
   const errors = logs.filter(l => l.level === "error");
   const mutations = ctx.mutations.since(before.mutations);
@@ -580,7 +608,8 @@ defineTool({
     "Type into a field one character at a time with real key events, through the same input pipeline a person's "
     + "keyboard uses — so the field's own rules apply: maxlength truncates, a keypress guard rejects what it rejects, "
     + "and a mask reformats as it goes. This is the tool for reproducing user behaviour, and for anything reacting per "
-    + "keystroke: search-as-you-type, autocomplete, validation-on-key. Slower than ui_fill by design. Note that typing "
+    + "keystroke: search-as-you-type, autocomplete, validation-on-key. Slower than ui_fill by design. Set fast:true for ordinary fields "
+    + "to insert the whole string in one CDP call; fast mode does not reproduce per-key handlers. Note that typing "
     + "leaves the field focused and `change` fires on blur, so pass submit:true (or press Tab) when the application "
     + "validates on change.",
   args: {
@@ -588,6 +617,7 @@ defineTool({
     text_to_type: { type: "string", description: "Characters to type.", required: true },
     clear_first: { type: "boolean", description: "Select all and delete before typing.", default: true },
     delay_ms: { type: "number", description: "Pause between keystrokes. Raise it if the field drops characters.", default: 12, min: 0, max: 500 },
+    fast: { type: "boolean", description: "Insert all text in one CDP operation. Faster, but skips per-keystroke handlers; default false.", default: false },
     submit: { type: "boolean", description: "Press Enter afterwards.", default: false },
   },
   async handler(args, ctx) {
@@ -608,7 +638,9 @@ defineTool({
       await pressKey(ctx, "Delete");
     }
 
-    for (const ch of args.text_to_type) {
+    if (args.fast) {
+      await Input.insertText({ text: args.text_to_type });
+    } else for (const ch of args.text_to_type) {
       await Input.dispatchKeyEvent({ type: "keyDown", text: ch, key: ch, unmodifiedText: ch });
       await Input.dispatchKeyEvent({ type: "keyUp", key: ch });
       if (args.delay_ms) await new Promise(r => setTimeout(r, args.delay_ms));
@@ -621,6 +653,7 @@ defineTool({
     return {
       typedInto: q.node,
       characters: args.text_to_type.length,
+      ...(args.fast ? { mode: "fast" } : {}),
       submitted: args.submit || undefined,
       caused: await consequenceOf(ctx, before, 320),
     };

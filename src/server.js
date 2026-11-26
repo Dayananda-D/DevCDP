@@ -126,7 +126,6 @@ export function createServer(overrides = {}) {
         if (media) delete result._media;
         const payload = capResponse(shape(tool, result, args), ctx.cfg.maxResponseBytes, name);
         annotateResponse(payload, ctx, { reconnect, retried });
-        ctx.conn.addActivity?.("done", `${name} completed`, `${Date.now() - started}ms`)?.catch?.(() => {});
         return { payload, media };
       });
 
