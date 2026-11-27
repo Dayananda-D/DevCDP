@@ -76,6 +76,9 @@ export function createContext(overrides = {}) {
       userHasControl: false,
       expectation: null,
       topic: null,
+      tools: [],
+      sessionName: null,
+      sessionId: null,
     },
 
     // ── network waiters (event driven) ──
@@ -125,14 +128,15 @@ export function createContext(overrides = {}) {
     return {
       sessionId: ctx.sessionId,
       sessionNumber: ctx.registry.sessionNumber || null,
-      clientName: ctx.caller.name || "MCP client",
-      clientId: ctx.caller.id || ctx.sessionId,
-      topic: ctx.caller.topic || s.topic || "MCP debugging session",
+      clientName: s.sessionName || ctx.caller.name || "MCP client",
+      clientId: s.sessionId || ctx.caller.id || ctx.sessionId,
+      topic: s.topic || ctx.caller.topic || ctx.caller.name || "MCP debugging session",
       goal: s.goal || null,
       expectation: s.pendingAsk?.instruction || s.expectation || null,
       status: s.pendingAsk ? "ask" : (steps.some(step => step.status === "blocked") ? "err"
         : (!s.active && steps.length && done === steps.length ? "done" : "working")),
       steps,
+      tools: (s.tools || []).map(name => ({ name, status: "used" })),
     };
   };
 

@@ -1074,6 +1074,10 @@ export class Connection {
         status: step.status || "pending",
         result: step.result || null,
       })) : [],
+      tools: Array.isArray(data.tools) ? data.tools.map(tool => ({
+        name: tool.name || null,
+        status: tool.status || "used",
+      })) : [],
     };
     return !!(await this.evalQuiet(
       `window.__devcdp && window.__devcdp.setSessionPanel && window.__devcdp.setSessionPanel(${JSON.stringify(safe)})`,

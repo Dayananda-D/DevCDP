@@ -241,6 +241,11 @@ if (!S.installed.listeners) {
         send("user_takeover", { active: S.userHasControl });
         S.setStatus(S.userHasControl ? "you have control — DevCDP is watching" : "control handed back", S.userHasControl ? "ask" : null);
       }
+      if (k === "p" && e.altKey && !e.shiftKey) { // Ctrl+Alt+P — show/hide the session panel
+        e.preventDefault();
+        e.stopPropagation();
+        S.toggleSessionPanel && S.toggleSessionPanel();
+      }
     }, true);
 
     document.addEventListener("submit", function (e) {
@@ -468,6 +473,8 @@ var ALIGN = { tr: "flex-end", br: "flex-end", tl: "flex-start", bl: "flex-start"
 // user moved it away from.
 var POS_KEY = "__devcdp_overlay_pos";
 var PANEL_KEY = "__devcdp_panel_collapsed_";
+var PANEL_LAYOUT_KEY = "__devcdp_panel_layout_";
+var PANEL_VIS_KEY = "__devcdp_panel_visible_";
 
 // Two colours, each meaning exactly one thing: blue means DevCDP is working, green
 // means it is your turn.
@@ -581,9 +588,9 @@ function buildChrome() {
     ".btn:hover{filter:brightness(1.12)}" +
     ".activity-panel{position:fixed;top:16px;right:12px;bottom:16px;width:320px;max-width:calc(100vw - 28px);font:12px/1.4 -apple-system,Segoe UI,Roboto,sans-serif;color:#172033;background:#f8fafc;border:1px solid #aebdd0;border-radius:10px;box-shadow:0 8px 30px rgba(31,48,71,.22);pointer-events:auto;display:" + (CFG.activityPanel === false ? "none" : "flex") + ";flex-direction:column;z-index:2;overflow:hidden}" +
     ".activity-panel.collapsed{width:34px;top:16px;bottom:16px;height:auto;max-height:none}" +
-    ".activity-head{flex:0 0 auto;padding:16px;border-bottom:1px solid #d9e2ec;background:#eef4fa}" +
+    ".activity-head{flex:0 0 auto;padding:16px;border-bottom:1px solid #d9e2ec;background:#eef4fa;cursor:grab}.activity-head:active{cursor:grabbing}" +
     ".activity-headbar{display:flex;align-items:center;gap:7px}.activity-name{font-size:13px;font-weight:600;color:#16243a}.activity-chip{font-size:10px;font-weight:600;letter-spacing:.03em;background:#3b5bdb;color:#fff;padding:4px 7px;border-radius:5px}.activity-status{font-size:10px;font-weight:600;padding:4px 7px;border-radius:5px;background:#dce8ff;color:#2448a5}.activity-status.done{background:#e7edf3;color:#52657a}.activity-status.ask{background:#d9f4df;color:#145b2a}.activity-status.err{background:#f9dfdf;color:#8c2424}.activity-toggle{flex:0 0 auto;width:24px;height:24px;display:grid;place-items:center;pointer-events:auto;cursor:pointer;border:1px solid #c4d0dd;border-radius:7px;background:#fff;color:#5d7187;padding:0;line-height:0;transition:background .15s ease,border-color .15s ease,color .15s ease}.activity-toggle:hover{background:#edf3fa;border-color:#9fb2c7;color:#3b5bdb}.activity-toggle svg{width:14px;height:14px;display:block}.activity-caller{margin-top:12px}.activity-client{font-size:10px;line-height:14px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#52657a}.activity-topic{margin:3px 0 0;font-size:14px;line-height:19px;font-weight:600;color:#17243a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.activity-id{margin-top:4px;font:11px/14px ui-monospace,SFMono-Regular,Consolas,monospace;color:#718197;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
-    ".activity-body{flex:1;min-height:0;overflow:auto;padding:16px}.activity-section{margin:0 0 24px}.activity-label{margin:0 0 7px;font-size:10px;line-height:14px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:#63758a}.activity-goal{margin:0;font-size:13px;line-height:18px;color:#172033}.activity-expect{margin:10px 0 0;padding:9px 10px;background:#edf3fa;border-left:2px solid #8ea6ff;border-radius:7px;color:#52657a;font-size:12px;line-height:17px}.activity-planhead{display:flex;justify-content:space-between;align-items:center}.activity-value{font:11px/14px ui-monospace,SFMono-Regular,Consolas,monospace;color:#718197}.activity-progress{display:flex;gap:3px;margin:8px 0 10px}.activity-seg{height:3px;flex:1;background:#dbe3ec;border-radius:2px}.activity-seg.done{background:#92a7bf}.activity-seg.now{background:#8ea6ff}.activity-seg.ask{background:#63c879}.activity-steps{margin:0;padding:0;list-style:none}.activity-step{display:flex;gap:8px;padding:8px;border-radius:7px;position:relative}.activity-step.now{background:#e7efff}.activity-step.ask{background:#e8f7ea}.activity-step.err{background:#f9eaea}.activity-mark{flex:0 0 16px;width:16px;height:16px;color:#8496ab;display:grid;place-items:center}.activity-mark svg{width:16px;height:16px}.activity-step.now .activity-mark{color:#5476df}.activity-step.ask .activity-mark{color:#269b46}.activity-step.done .activity-mark{color:#8496ab}.activity-step.err .activity-mark{color:#c94343}.activity-steptext{font-size:13px;line-height:18px;color:#223149}.activity-step.done .activity-steptext{text-decoration:line-through;color:#8b9cb3}.activity-note{margin:3px 0 0;font-size:12px;line-height:17px;color:#60738a}.activity-thought{margin:8px 0 0;padding-top:8px;border-top:1px solid #d9e2ec;font-size:12px;line-height:17px;color:#52657a}.activity-tag{margin-left:auto;align-self:flex-start;font-size:10px;line-height:14px;padding:3px 5px;border-radius:4px;background:#dce8ff;color:#2448a5}.activity-step.ask .activity-tag{background:#d9f4df;color:#145b2a}.activity-foot{flex:0 0 auto;display:flex;justify-content:space-between;padding:12px 16px;border-top:1px solid #d9e2ec;background:#eef4fa;color:#63758a;font-size:11px}.activity-panel.collapsed .activity-head{height:100%;padding:8px 7px;display:flex;align-items:flex-start;justify-content:center}.activity-panel.collapsed .activity-headbar{display:flex;flex-direction:column;gap:10px}.activity-panel.collapsed .activity-name,.activity-panel.collapsed .activity-status,.activity-panel.collapsed .activity-caller,.activity-panel.collapsed .activity-body,.activity-panel.collapsed .activity-foot{display:none}.activity-panel.collapsed .activity-chip{writing-mode:vertical-rl}.activity-panel.collapsed .activity-toggle{margin:0}" +
+    ".activity-body{flex:1;min-height:0;overflow:auto;padding:16px}.activity-section{margin:0 0 24px}.activity-label{margin:0 0 7px;font-size:10px;line-height:14px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:#63758a}.activity-goal{margin:0;font-size:13px;line-height:18px;color:#172033}.activity-expect{margin:10px 0 0;padding:9px 10px;background:#edf3fa;border-left:2px solid #8ea6ff;border-radius:7px;color:#52657a;font-size:12px;line-height:17px}.activity-planhead{display:flex;justify-content:space-between;align-items:center}.activity-value{font:11px/14px ui-monospace,SFMono-Regular,Consolas,monospace;color:#718197}.activity-progress{display:flex;gap:3px;margin:8px 0 10px}.activity-seg{height:3px;flex:1;background:#dbe3ec;border-radius:2px}.activity-seg.done{background:#92a7bf}.activity-seg.now{background:#8ea6ff}.activity-seg.ask{background:#63c879}.activity-steps{margin:0;padding:0;list-style:none}.activity-step{display:flex;gap:8px;padding:8px;border-radius:7px;position:relative}.activity-step.now{background:#e7efff}.activity-step.ask{background:#e8f7ea}.activity-step.err{background:#f9eaea}.activity-mark{flex:0 0 16px;width:16px;height:16px;color:#8496ab;display:grid;place-items:center}.activity-mark svg{width:16px;height:16px}.activity-step.now .activity-mark{color:#5476df}.activity-step.ask .activity-mark{color:#269b46}.activity-step.done .activity-mark{color:#8496ab}.activity-step.err .activity-mark{color:#c94343}.activity-steptext{font-size:13px;line-height:18px;color:#223149}.activity-step.done .activity-steptext{text-decoration:line-through;color:#8b9cb3}.activity-note{margin:3px 0 0;font-size:12px;line-height:17px;color:#60738a}.activity-thought{margin:8px 0 0;padding-top:8px;border-top:1px solid #d9e2ec;font-size:12px;line-height:17px;color:#52657a}.activity-tag{margin-left:auto;align-self:flex-start;font-size:10px;line-height:14px;padding:3px 5px;border-radius:4px;background:#dce8ff;color:#2448a5}.activity-step.ask .activity-tag{background:#d9f4df;color:#145b2a}.activity-tools{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:5px}.activity-tool{padding:4px 7px;border:1px solid #d4dfeb;border-radius:5px;background:#f3f7fb;color:#52657a;font:10px/14px ui-monospace,SFMono-Regular,Consolas,monospace}.activity-foot{flex:0 0 auto;display:flex;justify-content:space-between;padding:12px 16px;border-top:1px solid #d9e2ec;background:#eef4fa;color:#63758a;font-size:11px}.activity-resize{position:absolute;left:0;top:0;bottom:0;width:6px;cursor:ew-resize;background:transparent}.activity-resize:hover{background:#8ea6ff55}.activity-panel.hidden{display:none}.activity-panel.collapsed .activity-head{height:100%;padding:8px 7px;display:flex;align-items:flex-start;justify-content:center}.activity-panel.collapsed .activity-headbar{display:flex;flex-direction:column;gap:10px}.activity-panel.collapsed .activity-name,.activity-panel.collapsed .activity-status,.activity-panel.collapsed .activity-caller,.activity-panel.collapsed .activity-body,.activity-panel.collapsed .activity-foot{display:none}.activity-panel.collapsed .activity-chip{writing-mode:vertical-rl}.activity-panel.collapsed .activity-toggle{margin:0}" +
     // activity cursor: a ring that follows pointer activity, and a ripple on each
     // click, so it is visible where something is being interacted with.
     ".cur{position:fixed;left:0;top:0;width:20px;height:20px;margin:-10px 0 0 -10px;border:2px solid " + accent +
@@ -608,7 +615,7 @@ function buildChrome() {
       '<div class="toasts" id="toasts"></div>' +
       '<div class="panel" id="panel"><div class="q" id="q"></div><div class="btn" id="btn">I\\u2019ve done it \\u2713</div></div>' +
     '</div>' +
-    '<aside class="activity-panel" id="activity-panel" aria-label="DevCDP session activity"><header class="activity-head"><div class="activity-headbar"><button class="activity-toggle" id="activity-toggle" aria-label="Collapse DevCDP panel"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.75 3.5 5.25 8l4.5 4.5"/></svg></button><span class="activity-name">DevCDP</span><span class="activity-chip" id="activity-session"></span><span class="activity-status" id="activity-status">Working</span></div><div class="activity-caller"><div class="activity-client" id="activity-client"></div><div class="activity-topic" id="activity-topic"></div><div class="activity-id" id="activity-id"></div></div></header><div class="activity-body" id="activity-body"><section class="activity-section"><h3 class="activity-label">Goal</h3><p class="activity-goal" id="activity-goal"></p><p class="activity-expect" id="activity-expect"><b>Expect</b> <span></span></p></section><section class="activity-section"><div class="activity-planhead"><h3 class="activity-label">Plan</h3><span class="activity-value" id="activity-count"></span></div><div class="activity-progress" id="activity-progress"></div><ol class="activity-steps" id="activity-steps"></ol></section></div><footer class="activity-foot"><span>Take over any time</span><span>Ctrl+Shift+D</span></footer></aside>' +
+    '<aside class="activity-panel" id="activity-panel" aria-label="DevCDP session activity"><header class="activity-head"><div class="activity-headbar"><button class="activity-toggle" id="activity-toggle" aria-label="Collapse DevCDP panel"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.25 3.5 10.75 8l-4.5 4.5"/></svg></button><span class="activity-name">DevCDP</span><span class="activity-chip" id="activity-session"></span><span class="activity-status" id="activity-status">Working</span></div><div class="activity-caller"><div class="activity-client" id="activity-client"></div><div class="activity-topic" id="activity-topic"></div><div class="activity-id" id="activity-id"></div></div></header><div class="activity-body" id="activity-body"><section class="activity-section"><h3 class="activity-label">Goal</h3><p class="activity-goal" id="activity-goal"></p><p class="activity-expect" id="activity-expect"><b>Expect</b> <span></span></p></section><section class="activity-section"><div class="activity-planhead"><h3 class="activity-label">Plan</h3><span class="activity-value" id="activity-count"></span></div><div class="activity-progress" id="activity-progress"></div><ol class="activity-steps" id="activity-steps"></ol></section><section class="activity-section"><h3 class="activity-label">Tools used</h3><ul class="activity-tools" id="activity-tools"></ul></section></div><footer class="activity-foot"><span>Take over any time · Ctrl+Shift+D</span><span>Panel · Ctrl+Alt+P</span></footer><div class="activity-resize" id="activity-resize" title="Resize panel"></div></aside>' +
     '<div class="cur" id="cur"></div>' +
     '<div class="tip" id="tip"></div>';
 
@@ -839,6 +846,73 @@ function part(id) {
   return (h && h.shadowRoot) ? h.shadowRoot.getElementById(id) : null;
 }
 
+function panelStorageKey(prefix) { return prefix + (CFG.sessionId || "default"); }
+function savePanelGeometry(panel) {
+  try {
+    var r = panel.getBoundingClientRect();
+    localStorage.setItem(panelStorageKey(PANEL_LAYOUT_KEY), JSON.stringify({ left: Math.round(r.left), top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) }));
+  } catch (_) {}
+}
+function restorePanelGeometry(panel) {
+  try {
+    var raw = localStorage.getItem(panelStorageKey(PANEL_LAYOUT_KEY));
+    if (!raw) return;
+    var g = JSON.parse(raw);
+    if (!g || !g.width || !g.height) return;
+    panel.style.left = Math.max(4, Math.min(g.left || 0, innerWidth - 80)) + "px";
+    panel.style.right = "auto";
+    panel.style.top = Math.max(4, Math.min(g.top || 0, innerHeight - 80)) + "px";
+    panel.style.bottom = "auto";
+    panel.style.width = Math.max(260, Math.min(g.width, innerWidth - 28)) + "px";
+    panel.style.height = Math.max(300, Math.min(g.height, innerHeight - 28)) + "px";
+  } catch (_) {}
+}
+function wirePanelMovement(panel, head, resize) {
+  if (!panel || panel.__movementWired) return;
+  panel.__movementWired = true;
+  var drag = null;
+  head.addEventListener("pointerdown", function (e) {
+    if (e.target && (e.target.closest("button") || e.target.closest(".activity-resize"))) return;
+    var r = panel.getBoundingClientRect();
+    drag = { x: e.clientX, y: e.clientY, left: r.left, top: r.top };
+    head.setPointerCapture?.(e.pointerId);
+    e.preventDefault();
+  }, true);
+  head.addEventListener("pointermove", function (e) {
+    if (!drag) return;
+    panel.style.left = Math.max(4, Math.min(innerWidth - 80, drag.left + e.clientX - drag.x)) + "px";
+    panel.style.top = Math.max(4, Math.min(innerHeight - 80, drag.top + e.clientY - drag.y)) + "px";
+    panel.style.right = "auto";
+    panel.style.bottom = "auto";
+  }, true);
+  function stopDrag(e) { if (!drag) return; drag = null; try { head.releasePointerCapture?.(e.pointerId); } catch (_) {} savePanelGeometry(panel); }
+  head.addEventListener("pointerup", stopDrag, true);
+  head.addEventListener("pointercancel", stopDrag, true);
+
+  var resizing = null;
+  resize.addEventListener("pointerdown", function (e) {
+    var r = panel.getBoundingClientRect();
+    resizing = { x: e.clientX, y: e.clientY, right: r.right, top: r.top, height: r.height };
+    resize.setPointerCapture?.(e.pointerId);
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
+  resize.addEventListener("pointermove", function (e) {
+    if (!resizing) return;
+    var width = Math.max(260, Math.min(600, resizing.right - e.clientX));
+    var height = Math.max(300, Math.min(innerHeight - 28, resizing.height + e.clientY - resizing.y));
+    panel.style.left = Math.max(4, resizing.right - width) + "px";
+    panel.style.top = Math.max(4, Math.min(resizing.top, innerHeight - 80)) + "px";
+    panel.style.right = "auto";
+    panel.style.bottom = "auto";
+    panel.style.width = width + "px";
+    panel.style.height = height + "px";
+  }, true);
+  function stopResize(e) { if (!resizing) return; resizing = null; try { resize.releasePointerCapture?.(e.pointerId); } catch (_) {} savePanelGeometry(panel); }
+  resize.addEventListener("pointerup", stopResize, true);
+  resize.addEventListener("pointercancel", stopResize, true);
+}
+
 function mountChrome() {
   if (!CFG.badge) return null;
   var host = buildChrome();
@@ -862,10 +936,17 @@ function mountChrome() {
       var p = part("activity-panel");
       if (!p) return;
       var collapsed = p.classList.toggle("collapsed");
-      toggle.innerHTML = chevronSvg(collapsed ? "right" : "left");
+      toggle.innerHTML = chevronSvg(collapsed ? "left" : "right");
       toggle.setAttribute("aria-label", collapsed ? "Expand DevCDP panel" : "Collapse DevCDP panel");
       try { localStorage.setItem(PANEL_KEY + (CFG.sessionId || "default"), collapsed ? "1" : "0"); } catch (_) {}
     }, true);
+  }
+  var activityPanel = part("activity-panel");
+  var activityHead = activityPanel && activityPanel.querySelector(".activity-head");
+  var resize = part("activity-resize");
+  if (activityPanel && activityHead && resize) {
+    restorePanelGeometry(activityPanel);
+    wirePanelMovement(activityPanel, activityHead, resize);
   }
   var sessionChip = part("activity-session");
   if (sessionChip) sessionChip.textContent = "session " + String(CFG.sessionNumber || "?");
@@ -873,16 +954,18 @@ function mountChrome() {
   if (client) client.textContent = CFG.callerName || "MCP client";
   var callerId = part("activity-id");
   if (callerId) callerId.textContent = CFG.callerId || CFG.sessionId || "session id unavailable";
-  var activityPanel = part("activity-panel");
   if (activityPanel && !activityPanel.__restored) {
     activityPanel.__restored = true;
     var collapsed = false;
     try { collapsed = localStorage.getItem(PANEL_KEY + (CFG.sessionId || "default")) === "1"; } catch (_) {}
     activityPanel.classList.toggle("collapsed", collapsed);
     if (toggle) {
-      toggle.innerHTML = chevronSvg(collapsed ? "right" : "left");
+      toggle.innerHTML = chevronSvg(collapsed ? "left" : "right");
       toggle.setAttribute("aria-label", collapsed ? "Expand DevCDP panel" : "Collapse DevCDP panel");
     }
+    var visible = true;
+    try { visible = localStorage.getItem(panelStorageKey(PANEL_VIS_KEY)) !== "0"; } catch (_) {}
+    activityPanel.classList.toggle("hidden", !visible);
   }
   if (S.pendingAsk) applyAsk(S.pendingAsk);
   return host;
@@ -977,6 +1060,16 @@ function renderPanel(data) {
       list.appendChild(li);
     });
   }
+  var toolsList = part("activity-tools");
+  if (toolsList) {
+    toolsList.textContent = "";
+    (Array.isArray(data.tools) ? data.tools : []).forEach(function (tool) {
+      var item = document.createElement("li");
+      item.className = "activity-tool";
+      item.textContent = tool && (tool.name || tool) ? (tool.name || tool) : "Unknown tool";
+      toolsList.appendChild(item);
+    });
+  }
   var status = part("activity-status");
   if (status) { var label = data.status === "ask" ? "Your turn" : data.status === "done" ? "Done" : data.status === "err" ? "Blocked" : "Working"; status.textContent = label; status.className = "activity-status" + (data.status ? " " + data.status : ""); }
   return true;
@@ -1037,6 +1130,16 @@ function applyAsk(ask) {
 S.setStatus = function (text, kind) { guard("setStatus", function () { mountChrome(); applyStatus({ text: text, kind: kind }); }); return true; };
 S.addActivity = function () { return false; };
 S.setSessionPanel = function (data) { guard("sessionPanel", function () { S.panelState = data || {}; renderPanel(S.panelState); }); return true; };
+S.toggleSessionPanel = function () {
+  guard("toggleSessionPanel", function () {
+    mountChrome();
+    var panel = part("activity-panel");
+    if (!panel) return;
+    var hidden = panel.classList.toggle("hidden");
+    try { localStorage.setItem(panelStorageKey(PANEL_VIS_KEY), hidden ? "0" : "1"); } catch (_) {}
+  });
+  return true;
+};
 S.ask       = function (instruction) { guard("ask", function () { mountChrome(); applyAsk({ instruction: instruction }); }); return true; };
 S.clearAsk  = function () { guard("clearAsk", function () { applyAsk(null); }); return true; };
 

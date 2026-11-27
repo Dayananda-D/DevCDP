@@ -876,16 +876,19 @@ Optional. Useful for multi-step reproductions; a single question does not need i
 
 ### `session_start`
 
-Open a debugging session with a goal and an ordered list of steps, so progress is tracked and a failed step can fall back to asking the human. Use it for multi-step reproductions; a single-question investigation does not need it.
+Start the structured DevCDP side-panel session. Always provide the predefined Goal and Expectation fields, then provide the model's variable ordered Plan as steps. Include the AI client's conversation/session name and ID when available, such as 'Forked Mru build' and 'Made2Manage-E6'.
 
 Arguments:
 
   - `goal` · *string* · **required** — What you are trying to find out or prove.
-  - `steps` · *array* · **required** — Ordered steps, each { id, description, actor }. actor is 'agent', 'user' or 'either'.
-  - `expectation` · *string* — What you expect the investigation to establish or observe.
+  - `expectation` · *string* · **required** — Predefined Expectation field: what you expect the investigation to establish or observe.
+  - `steps` · *array* · **required** — The variable model-generated Plan: ordered steps, each { id, description, actor }. actor is 'agent', 'user' or 'either'.
   - `topic` · *string* — Short human-readable topic shown in the DevCDP side panel.
   - `client_name` · *string* — Optional AI/MCP client name shown in the side panel.
   - `client_id` · *string* — Optional AI/MCP client or session identifier shown in the side panel.
+  - `session_name` · *string* — AI client's conversation/session name, for example 'Forked Mru build'.
+  - `session_id` · *string* — AI client's conversation/session ID, for example 'Made2Manage-E6'.
+  - `session_topic` · *string* — AI client's human-readable topic or task description.
 
 *Changes only DevCDP state.*
 
@@ -949,6 +952,69 @@ Arguments:
 Close the session and return a summary. Does not detach — call devtools_disconnect to release the tab and clear breakpoints when you are finished with the browser entirely.
 
 *No arguments.*
+
+*Changes only DevCDP state; works without an attached tab.*
+
+### `session_agent_register`
+
+Register an agent identity in this DevCDP session so concurrent callers can be attributed, queued, and audited safely.
+
+Arguments:
+
+  - `agent_id` · *string* · **required** — Stable identity for the agent, unique within this DevCDP session.
+  - `label` · *string* · default `""` — Human-readable agent label.
+
+*Changes only DevCDP state; works without an attached tab.*
+
+### `session_agent_unregister`
+
+Remove an idle agent identity from this DevCDP session; active agents and held leases cannot be removed.
+
+Arguments:
+
+  - `agent_id` · *string* · **required** — Agent identity to remove.
+
+*Changes only DevCDP state; works without an attached tab.*
+
+### `session_agent_acquire_lease`
+
+Acquire the exclusive action lease required before a non-default agent drives, navigates, debugs, or changes the attached page.
+
+Arguments:
+
+  - `agent_id` · *string* · **required** — Agent identity acquiring the lease.
+  - `label` · *string* · default `""` — Optional human-readable label.
+  - `ttl_ms` · *number* · default `30000` — Lease lifetime; it is bounded to 1 second through 10 minutes.
+
+*Changes only DevCDP state; works without an attached tab.*
+
+### `session_agent_release_lease`
+
+Release an agent's exclusive session action lease so the next queued mutating agent can proceed.
+
+Arguments:
+
+  - `agent_id` · *string* · **required** — Agent identity releasing the lease.
+  - `lease_id` · *string* — Lease token returned by session_agent_acquire_lease.
+
+*Changes only DevCDP state; works without an attached tab.*
+
+### `session_agent_status`
+
+Show registered agents, active readers, the exclusive writer, action lease ownership, queued calls, and running calls in this DevCDP session.
+
+*No arguments.*
+
+*Read-only; works without an attached tab.*
+
+### `session_agent_cancel`
+
+Cancel an agent's queued call before it touches Chrome; a running CDP call is reported but is not forcefully interrupted by this safe coordinator operation.
+
+Arguments:
+
+  - `request_id` · *string* · **required** — Request identifier supplied on the call to cancel.
+  - `agent_id` · *string* · **required** — Agent identity that owns the request.
 
 *Changes only DevCDP state; works without an attached tab.*
 
