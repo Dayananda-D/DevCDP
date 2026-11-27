@@ -955,6 +955,69 @@ Close the session and return a summary. Does not detach — call devtools_discon
 
 *Changes only DevCDP state; works without an attached tab.*
 
+### `session_agent_register`
+
+Register an agent identity in this DevCDP session so concurrent callers can be attributed, queued, and audited safely.
+
+Arguments:
+
+  - `agent_id` · *string* · **required** — Stable identity for the agent, unique within this DevCDP session.
+  - `label` · *string* · default `""` — Human-readable agent label.
+
+*Changes only DevCDP state; works without an attached tab.*
+
+### `session_agent_unregister`
+
+Remove an idle agent identity from this DevCDP session; active agents and held leases cannot be removed.
+
+Arguments:
+
+  - `agent_id` · *string* · **required** — Agent identity to remove.
+
+*Changes only DevCDP state; works without an attached tab.*
+
+### `session_agent_acquire_lease`
+
+Acquire the exclusive action lease required before a non-default agent drives, navigates, debugs, or changes the attached page.
+
+Arguments:
+
+  - `agent_id` · *string* · **required** — Agent identity acquiring the lease.
+  - `label` · *string* · default `""` — Optional human-readable label.
+  - `ttl_ms` · *number* · default `30000` — Lease lifetime; it is bounded to 1 second through 10 minutes.
+
+*Changes only DevCDP state; works without an attached tab.*
+
+### `session_agent_release_lease`
+
+Release an agent's exclusive session action lease so the next queued mutating agent can proceed.
+
+Arguments:
+
+  - `agent_id` · *string* · **required** — Agent identity releasing the lease.
+  - `lease_id` · *string* — Lease token returned by session_agent_acquire_lease.
+
+*Changes only DevCDP state; works without an attached tab.*
+
+### `session_agent_status`
+
+Show registered agents, active readers, the exclusive writer, action lease ownership, queued calls, and running calls in this DevCDP session.
+
+*No arguments.*
+
+*Read-only; works without an attached tab.*
+
+### `session_agent_cancel`
+
+Cancel an agent's queued call before it touches Chrome; a running CDP call is reported but is not forcefully interrupted by this safe coordinator operation.
+
+Arguments:
+
+  - `request_id` · *string* · **required** — Request identifier supplied on the call to cancel.
+  - `agent_id` · *string* · **required** — Agent identity that owns the request.
+
+*Changes only DevCDP state; works without an attached tab.*
+
 ## Multi-agent coordination
 
 Register parallel workers by identity. Read-only calls may overlap; page and session mutations are serialized, and non-default agents must hold the action lease.
